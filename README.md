@@ -28,7 +28,7 @@ Make sure you have the following installed:
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repository-url>
+   git clone <repository-url>
    cd kastomy-shop-backend
 
     Create and activate a virtual environment
@@ -68,37 +68,40 @@ celery -A core worker -l info
 celery -A core beat -l info
 
 If using Docker, these services are already defined in the docker-compose.yml.
-📂 Project Structure
+
+## 📂 Project Structure
+
+This is the structure of the `shop_backend` Django project:
 
 shop_backend/
 │
-├── config/
+├── config/ # Project configuration (settings, urls, wsgi/asgi)
 │
-├── core/
+├── core/ # Core utilities, base models, logical delete, common functions
 │
-├── accounts/             
-│   ├── models.py         # CustomUser, Profile, Address, OTP
-│   └── ...
+├── accounts/ # User management
+│ ├── models.py # CustomUser, Profile, Address, OTP
+│ └── ...
 │
-├── products/             
-│   ├── models.py         # Product, Category
-│   └── ...
+├── products/ # Product management
+│ ├── models.py # Product, Category
+│ └── ...
 │
-├── reviews/              
-│   ├── models.py         # Review (با GenericForeignKey)
-│   └── ...
+├── reviews/ # Product reviews
+│ ├── models.py # Review (with GenericForeignKey)
+│ └── ...
 │
-├── cart/
-│   └── ...
+├── cart/ # Shopping cart functionality
+│ └── ...
 │
-├── orders/
-│   └── ...
+├── orders/ # Order processing
+│ └── ...
 │
-├── store/
-│   └── ...
+├── store/ # Store related logic, maybe promotions or analytics
+│ └── ...
 │
-├── manage.py
-└── requirements.txt
+├── manage.py # Django management script
+└── requirements.txt # Python dependencies
 
 📌 Features
 
