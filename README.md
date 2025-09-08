@@ -49,9 +49,32 @@ Run the development server
 
     python manage.py runserver
 
+🌍 Environment Variables
+
+Create a .env file in the project root with the following keys (example values provided):
+
+# Django
+DEBUG=True
+SECRET_KEY=your-secret-key
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+DATABASE_URL=postgres://user:password@localhost:5432/shop_db
+
+# Celery / Redis
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# JWT
+JWT_SECRET=your-jwt-secret
+JWT_ACCESS_EXP=3600
+JWT_REFRESH_EXP=86400
+
+    ⚠️ Make sure .env is listed in your .gitignore file so sensitive data is not committed.
+
 🐳 Running with Docker
 
-    Build and start the containers
+Build and start the containers
 
 docker-compose up --build
 
@@ -59,7 +82,7 @@ The API will be available at:
 👉 http://localhost:8000
 ⚡ Running Celery
 
-To enable background tasks, you need to run Celery worker and optionally Celery beat:
+To enable background tasks, run Celery worker and optionally Celery beat:
 
 # Start Celery worker
 celery -A core worker -l info
@@ -68,40 +91,44 @@ celery -A core worker -l info
 celery -A core beat -l info
 
 If using Docker, these services are already defined in the docker-compose.yml.
+🧪 Running Tests
+
+To run the test suite:
+
+# Using Django's test runner
+python manage.py test
+
+# Or if pytest is installed
+pytest
+
+
+
 
 ## 📂 Project Structure
 
-This is the structure of the `shop_backend` Django project:
 
+```plaintext
 shop_backend/
 │
-├── config/ # Project configuration (settings, urls, wsgi/asgi)
-│
-├── core/ # Core utilities, base models, logical delete, common functions
-│
-├── accounts/ # User management
-│ ├── models.py # CustomUser, Profile, Address, OTP
-│ └── ...
-│
-├── products/ # Product management
-│ ├── models.py # Product, Category
-│ └── ...
-│
-├── reviews/ # Product reviews
-│ ├── models.py # Review (with GenericForeignKey)
-│ └── ...
-│
-├── cart/ # Shopping cart functionality
-│ └── ...
-│
-├── orders/ # Order processing
-│ └── ...
-│
-├── store/ # Store related logic, maybe promotions or analytics
-│ └── ...
-│
-├── manage.py # Django management script
-└── requirements.txt # Python dependencies
+├── config/             # Project configuration (settings, urls, wsgi/asgi)
+├── core/               # Core utilities, base models, logical delete, common functions
+├── accounts/           # User management
+│   ├── models.py       # CustomUser, Profile, Address, OTP
+│   └── ...
+├── products/           # Product management
+│   ├── models.py       # Product, Category
+│   └── ...
+├── reviews/            # Product reviews
+│   ├── models.py       # Review (with GenericForeignKey)
+│   └── ...
+├── cart/               # Shopping cart functionality
+├── orders/             # Order processing
+├── store/              # Store related logic, promotions, analytics
+├── manage.py           # Django management script
+└── requirements.txt    # Python dependencies
+
+```
+
 
 📌 Features
 
