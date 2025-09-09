@@ -123,7 +123,8 @@ shop_backend/
 │   └── ...
 ├── cart/               # Shopping cart functionality
 ├── orders/             # Order processing
-├── store/              # Store related logic, promotions, analytics
+├── shops/              # Store related logic, promotions, analytics
+├── payments/           # Handles payment processing and transaction tracking
 ├── manage.py           # Django management script
 └── requirements.txt    # Python dependencies
 

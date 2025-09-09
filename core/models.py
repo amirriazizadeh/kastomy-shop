@@ -1,28 +1,38 @@
 from django.db import models
-from django.utils import timezone
 
+class SoftDeleteManager(models.Manager):
+    """
+    Custom manager to automatically filter out objects that are soft-deleted.
+    """
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
 class BaseModel(models.Model):
     """
-    Abstract base model with common fields and logical delete
+    An abstract base model providing common fields for all other models.
+
+    Fields:
+        - created_at: DateTimeField, automatically set when the object is first created.
+        - updated_at: DateTimeField, automatically set every time the object is saved.
+        - is_deleted: BooleanField, used for logical deletion instead of physical deletion.
     """
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_deleted = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated At")
+    is_deleted = models.BooleanField(default=False, verbose_name="Is Deleted")
+
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True
         ordering = ['-created_at']
 
-    def delete(self, using=None, keep_parents=False):
-        """
-        Logical delete: mark the record as deleted instead of removing it
-        """
+    def soft_delete(self):
+        """Marks the instance as deleted."""
         self.is_deleted = True
-        self.save(using=using)
+        self.save()
 
-    def hard_delete(self, using=None, keep_parents=False):
-        """
-        Permanently delete the record from the database
-        """
-        super().delete(using=using, keep_parents=keep_parents)
+    def restore(self):
+        """Restores a soft-deleted instance."""
+        self.is_deleted = False
+        self.save()
