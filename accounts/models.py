@@ -1,15 +1,18 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from core.models import BaseModel
 
+
 class UserManager(BaseUserManager):
+    
     def create_user(self, phone_number, password=None, **extra_fields):
+        
         if not phone_number:
             raise ValueError("The Phone Number field must be set")
-        
-        email = extra_fields.get('email')
-        if email:
-            extra_fields['email'] = self.normalize_email(email)
+
+        if 'email' in extra_fields and extra_fields['email']:
+            extra_fields['email'] = self.normalize_email(extra_fields['email'])
 
         user = self.model(phone_number=phone_number, **extra_fields)
         user.set_password(password)
@@ -17,74 +20,58 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, phone_number, password=None, **extra_fields):
+        
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', User.Role.ADMIN)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get('role') != User.Role.ADMIN:
+            raise ValueError('Superuser must have role of ADMIN.')
+
         return self.create_user(phone_number, password, **extra_fields)
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
-    """
-    Custom user model for authentication with phone number or email.
-    """
-    class Role(models.TextChoices):
-        CUSTOMER = 'CUSTOMER', 'Customer'
-        SELLER = 'SELLER', 'Seller'
-        ADMIN = 'ADMIN', 'Admin'
 
-    phone_number = models.CharField(max_length=15, unique=True, verbose_name="Phone Number")
-    email = models.EmailField(unique=True, null=True, blank=True, verbose_name="Email Address")
-    role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="User Role")
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    
-    USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = ['email']
+    class Role(models.TextChoices):
+        CUSTOMER = 'CUSTOMER', 'مشتری'
+        SELLER = 'SELLER', 'فروشگاه'
+        ADMIN = 'ADMIN', 'مدیر'
+
+    phone_number = models.CharField(max_length=15, unique=True, db_index=True, verbose_name="شماره تلفن")
+    email = models.EmailField(unique=True, null=True, blank=True, verbose_name="آدرس ایمیل")
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="نقش کاربر")
+
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    is_staff = models.BooleanField(default=False, verbose_name="وضعیت کارمند")
+    date_joined = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ عضویت")
 
     objects = UserManager()
+
+    USERNAME_FIELD = 'phone_number'
+    REQUIRED_FIELDS = []
+
+    class Meta:
+        verbose_name = "کاربر"
+        verbose_name_plural = "کاربران"
 
     def __str__(self):
         return self.phone_number
 
-class Profile(BaseModel):
-    """
-    Stores additional information and seller request status for a user.
-    """
-    class SellerStatus(models.TextChoices):
-        NONE = 'NONE', 'None'
-        PENDING = 'PENDING', 'Pending Approval'
-        APPROVED = 'APPROVED', 'Approved'
-        REJECTED = 'REJECTED', 'Rejected'
-
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
-    first_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    seller_status = models.CharField(max_length=10, choices=SellerStatus.choices, default=SellerStatus.NONE)
-
-    def __str__(self):
-        return f"Profile of {self.user.phone_number}"
-
-class Address(BaseModel):
-    """
-    Represents a shipping address for a user. A user can have multiple addresses.
-    """
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='addresses')
-    province = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=20)
-    address_detail = models.TextField()
-    is_default = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Address for {self.user.phone_number} in {self.city}"
 
 class OTP(BaseModel):
-    """
-    Stores One-Time Passwords for phone number verification.
-    """
-    phone_number = models.CharField(max_length=15)
-    code = models.CharField(max_length=6)
-    is_active = models.BooleanField(default=True)
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='otps', verbose_name="کاربر")
+    code = models.CharField(max_length=6, verbose_name="کد تایید")
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        verbose_name = "کد یکبار مصرف"
+        verbose_name_plural = "کدهای یکبار مصرف"
 
     def __str__(self):
-        return f"OTP {self.code} for {self.phone_number}"
+        return f"OTP for {self.user.phone_number}"

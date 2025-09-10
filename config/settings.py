@@ -38,14 +38,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # rest_framework
+    'rest_framework',
     # my apps
     'accounts',
+    'adminpanel',
     'cart',
+    'categories',
     'core',
+    'payments',
     'orders',
     'products',
     'reviews',
-    'shops',
+    'stores',
+    'users',
 ]
 
 MIDDLEWARE = [
