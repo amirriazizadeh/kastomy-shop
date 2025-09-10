@@ -4,32 +4,59 @@ from core.models import BaseModel
 from products.models import StoreItem
 
 class Cart(BaseModel):
-    """
-    Represents a shopping cart, for a registered user or a guest.
-    """
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='carts')
-    session_key = models.CharField(max_length=40, null=True, blank=True, help_text="For guest users")
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='carts',
+        verbose_name="کاربر"
+    )
+    session_key = models.CharField(
+        max_length=40,
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="شناسه جلسه (برای کاربر مهمان)"
+    )
+
+    class Meta:
+        verbose_name = "سبد خرید"
+        verbose_name_plural = "سبدهای خرید"
 
     def __str__(self):
         if self.user:
-            return f"Cart for {self.user.phone_number}"
-        return f"Guest Cart - {self.session_key}"
+            return f"سبد خرید کاربر {self.user.phone_number}"
+        return f"سبد خرید مهمان - {self.session_key}"
 
 class CartItem(BaseModel):
-    """
-    Represents an item within a shopping cart.
-    It now links to a StoreItem, not a ProductVariant.
-    """
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    item = models.ForeignKey(StoreItem, on_delete=models.CASCADE, related_name='cart_items')
-    quantity = models.PositiveIntegerField(default=1)
+    
+    cart = models.ForeignKey(
+        Cart,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="سبد خرید"
+    )
+    store_item = models.ForeignKey(
+        StoreItem,
+        on_delete=models.CASCADE,
+        related_name='cart_items',
+        verbose_name="آیتم فروشگاه"
+    )
+    quantity = models.PositiveIntegerField(default=1, verbose_name="تعداد")
 
     class Meta:
-        unique_together = ('cart', 'item')
+        verbose_name = "آیتم سبد خرید"
+        verbose_name_plural = "آیتم‌های سبد خرید"
+        constraints = [
+            models.UniqueConstraint(fields=['cart', 'store_item'], name='unique_cart_store_item')
+        ]
 
     def __str__(self):
-        return f"{self.quantity} x {self.item.variant.product.name}"
+        return f"{self.quantity} عدد از {self.store_item.product.name}"
 
     @property
     def total_price(self):
-        return self.quantity * self.item.price
+        return self.quantity * self.store_item.price
+

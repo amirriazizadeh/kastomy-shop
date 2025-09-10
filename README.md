@@ -108,26 +108,22 @@ pytest
 
 
 ```plaintext
-shop_backend/
+castomy-shop/
 │
-├── config/             # Project configuration (settings, urls, wsgi/asgi)
-├── core/               # Core utilities, base models, logical delete, common functions
-├── accounts/           # User management
-│   ├── models.py       # CustomUser, Profile, Address, OTP
-│   └── ...
-├── products/           # Product management
-│   ├── models.py       # Product, Category
-│   └── ...
-├── reviews/            # Product reviews
-│   ├── models.py       # Review (with GenericForeignKey)
-│   └── ...
-├── cart/               # Shopping cart functionality
-├── orders/             # Order processing
-├── shops/              # Store related logic, promotions, analytics
-├── payments/           # Handles payment processing and transaction tracking
-├── manage.py           # Django management script
-└── requirements.txt    # Python dependencies
-
+├── accounts/        → ثبت‌نام، لاگین، OTP، JWT، مدیریت احراز هویت
+├── adminpanel/      → API مخصوص پنل مدیریت (مدیرکل پلتفرم)
+├── cart/            → مدیریت سبد خرید کاربران
+├── categories/      → دسته‌بندی محصولات (درختی، چند سطحی)
+├── core/            → مدل پایه (BaseModel)، Soft Delete، ابزارهای مشترک
+├── orders/          → سفارش‌ها، وضعیت سفارش، مدیریت فاکتورها
+├── payments/        → درگاه پرداخت، تراکنش‌ها، کیف پول احتمالی
+├── products/        → محصولات، ویژگی‌ها، تنوع محصول (variation)
+├── reviews/         → نظرات و امتیاز کاربران روی محصولات/فروشنده‌ها
+├── stores/          → اطلاعات فروشندگان و فروشگاه‌ها
+├── users/           → پروفایل کاربر، آدرس‌ها، نقش‌ها (مشتری/فروشنده)
+│
+├── config/         → تنظیمات اصلی پروژه (settings, urls, wsgi, asgi)
+└── manage.py
 ```
 
 
