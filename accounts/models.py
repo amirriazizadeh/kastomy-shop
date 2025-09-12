@@ -23,13 +23,13 @@ class UserManager(BaseUserManager):
         
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', User.Role.ADMIN)
+        extra_fields.setdefault('role', CustomUser.Role.ADMIN)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        if extra_fields.get('role') != User.Role.ADMIN:
+        if extra_fields.get('role') != CustomUser.Role.ADMIN:
             raise ValueError('Superuser must have role of ADMIN.')
 
         return self.create_user(phone_number, password, **extra_fields)
