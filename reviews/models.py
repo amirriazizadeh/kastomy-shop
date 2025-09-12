@@ -13,8 +13,7 @@ class Review(BaseModel):
     comment = models.TextField(blank=True)
     is_approved = models.BooleanField(default=False)
 
-    class Meta:
-        unique_together = ('product', 'user')
+    
 
     def __str__(self):
         return f"Review for {self.product.name} by {self.user.phone_number}"
@@ -27,8 +26,7 @@ class ShopReview(BaseModel):
     comment = models.TextField(blank=True)
     is_approved = models.BooleanField(default=False)
 
-    class Meta:
-        unique_together = ('store', 'user')
+    
 
     def __str__(self):
         return f"Review for {self.store.name} by {self.user.phone_number}"

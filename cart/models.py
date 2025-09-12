@@ -49,9 +49,7 @@ class CartItem(BaseModel):
     class Meta:
         verbose_name = "آیتم سبد خرید"
         verbose_name_plural = "آیتم‌های سبد خرید"
-        constraints = [
-            models.UniqueConstraint(fields=['cart', 'store_item'], name='unique_cart_store_item')
-        ]
+       
 
     def __str__(self):
         return f"{self.quantity} عدد از {self.store_item.product.name}"

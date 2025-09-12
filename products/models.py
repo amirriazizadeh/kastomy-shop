@@ -57,9 +57,6 @@ class AttributeValue(BaseModel):
     class Meta:
         verbose_name = "مقدار ویژگی"
         verbose_name_plural = "مقادیر ویژگی‌ها"
-        constraints = [
-            models.UniqueConstraint(fields=['attribute', 'value'], name='unique_attribute_value')
-        ]
         ordering = ['attribute__name', 'value']
 
     def __str__(self):
@@ -95,9 +92,7 @@ class StoreItem(BaseModel):
     class Meta:
         verbose_name = "کالای فروشگاه"
         verbose_name_plural = "کالاهای فروشگاه"
-        constraints = [
-            models.UniqueConstraint(fields=['store', 'variant'], name='unique_store_variant')
-        ]
+        
 
     def __str__(self):
         return f"کالای '{self.variant}' در فروشگاه '{self.store.name}'"
