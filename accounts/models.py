@@ -46,9 +46,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, null=True, blank=True, verbose_name="آدرس ایمیل")
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="نقش کاربر")
 
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    is_active = models.BooleanField(default=False, verbose_name="فعال")
     is_staff = models.BooleanField(default=False, verbose_name="وضعیت کارمند")
-    date_joined = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ عضویت")
+    
 
     objects = UserManager()
 
@@ -62,16 +62,23 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.phone_number
 
-
-class OTP(BaseModel):
+class Address(BaseModel):
     
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='otps', verbose_name="کاربر")
-    code = models.CharField(max_length=6, verbose_name="کد تایید")
-    is_active = models.BooleanField(default=True, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='addresses',
+        verbose_name="کاربر"
+    )
+    province = models.CharField(max_length=100, verbose_name="استان")
+    city = models.CharField(max_length=100, verbose_name="شهر")
+    street = models.TextField(verbose_name="آدرس دقیق")
+    postal_code = models.CharField(max_length=10, verbose_name="کد پستی")
 
     class Meta:
-        verbose_name = "کد یکبار مصرف"
-        verbose_name_plural = "کدهای یکبار مصرف"
+        verbose_name = "آدرس"
+        verbose_name_plural = "آدرس‌ها"
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"OTP for {self.user.phone_number}"
+        return f'آدرس {self.user.email} در {self.city}'

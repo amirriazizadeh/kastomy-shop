@@ -40,18 +40,17 @@ INSTALLED_APPS = [
 
     # rest_framework
     'rest_framework',
+    'drf_spectacular',
+    'rest_framework_simplejwt',
     # my apps
     'accounts',
     'adminpanel',
     'cart',
-    'categories',
     'core',
-    'payments',
     'orders',
     'products',
     'reviews',
     'stores',
-    'users',
 ]
 
 MIDDLEWARE = [
@@ -151,3 +150,36 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY, # از SECRET_KEY خود پروژه استفاده می‌کند
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+}
+
+
+# ///////////////////////////////////////////////////////////////////////
+
+#               REDIS
+# ///////////////////////////////////////////////////////////////////////
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 0
