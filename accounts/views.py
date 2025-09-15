@@ -2,11 +2,14 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
-from .serializers import RegisterSerializer,RegisterSuccessSerializer,OTPRequestSerializer,VerifyOTPSerializer
+from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPRequestSerializer,
+                           UserProfileSerializer,VerifyOTPSerializer,AddressSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.views import APIView
 from .utils import generate_otp,verify_otp
 from utils import send_otp_code
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
 
 User = get_user_model()
 
@@ -122,3 +125,41 @@ class VerifyOTPView(APIView):
                 return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
                 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Manage the authenticated user's profile.
+    Supports GET, PUT, PATCH, DELETE.
+    """
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        """
+        Retrieve and return the authenticated user.
+        """
+        return self.request.user
+    
+
+class AddressViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing user addresses.
+    Provides list, create, retrieve, update, and destroy actions.
+    """
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the addresses
+        for the currently authenticated user.
+        """
+        return self.request.user.addresses.all()
+
+    def perform_create(self, serializer):
+        """
+        Assign the current user to the address when creating a new one.
+        """
+        serializer.save(user=self.request.user)
