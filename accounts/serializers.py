@@ -80,3 +80,28 @@ class VerifyOTPSerializer(serializers.Serializer):
     """
     phone_number = serializers.CharField(max_length=15)
     otp = serializers.CharField(max_length=6, write_only=True)
+
+from .models import CustomUser, Address
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for viewing and updating the authenticated user's profile.
+    """
+    profile_picture = serializers.ImageField(required=False, allow_null=True, use_url=True)
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            'phone_number', 'first_name', 'last_name', 'email',
+            'role', 'is_active', 'is_staff', 'profile_picture',
+        ]
+        read_only_fields = ('phone_number', 'role', 'is_active', 'is_staff')
+
+class AddressSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Address object
+    """
+    class Meta:
+        model = Address
+        fields = ('id', 'user', 'province', 'city', 'street', 'postal_code')
+        read_only_fields = ('id', 'user')
+

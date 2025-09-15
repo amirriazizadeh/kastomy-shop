@@ -49,6 +49,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False, verbose_name="فعال")
     is_staff = models.BooleanField(default=False, verbose_name="وضعیت کارمند")
     
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+
+    profile_picture = models.ImageField(upload_to='profiles/%Y/%m/', blank=True, null=True)
 
     objects = UserManager()
 
