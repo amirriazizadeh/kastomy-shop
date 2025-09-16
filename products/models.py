@@ -34,11 +34,13 @@ class Product(BaseModel):
     description = models.TextField(verbose_name="توضیحات")
     category = models.ForeignKey(
         Category,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='products',
         verbose_name="دسته‌بندی"
     )
     cover_image = models.ImageField(upload_to='product_covers/', verbose_name="تصویر کاور")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, verbose_name="امتیاز")
 
     class Meta:
         verbose_name = "محصول (قالب)"

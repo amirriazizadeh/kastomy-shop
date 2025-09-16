@@ -1,15 +1,19 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPRequestSerializer,
-                           UserProfileSerializer,VerifyOTPSerializer,AddressSerializer)
+                           UserProfileSerializer,VerifyOTPSerializer,AddressSerializer,StoreRegistrationSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.views import APIView
 from .utils import generate_otp,verify_otp
 from utils import send_otp_code
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+from stores.models import Store
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 User = get_user_model()
 
@@ -56,6 +60,7 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
+
         
         return Response(
             {
@@ -68,67 +73,102 @@ class RegisterView(generics.CreateAPIView):
 
 class RequestOTPView(APIView):
     """
-    API view to generate and send (print to terminal) an OTP.
+    API view to request a new OTP for an inactive user.
+    Receives a username and sends a new OTP.
     """
+    serializer_class = OTPRequestSerializer
+
     def post(self, request, *args, **kwargs):
-        serializer = OTPRequestSerializer(data=request.data)
-        if serializer.is_valid():
-            phone = serializer.validated_data['phone_number']
-            
-            try:
-                User.objects.get(phone_number=phone, is_active=False)
-            except User.DoesNotExist:
-                return Response({"error": "User with this phone number is not registered or is already active."}, status=status.HTTP_404_NOT_FOUND)
-
-
-            # Store OTP in cache with a 2-minute timeout
-            otp = generate_otp(phone)
-            send_otp_code(phone, otp)
-            
-            return Response({"message": "OTP has been sent successfully."}, status=status.HTTP_200_OK)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = get_object_or_404(User, username=username)
+
+        if user.is_active:
+            return Response({"error": "This user is already active."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Generate and send a new OTP
+        otp = generate_otp(user.phone_number)
+        send_otp_code(user.phone_number, otp)
+        
+        return Response({
+            "seccses":"OTP has been sent seccesfully",
+            "message": "A new verification code has been sent.",
+            'expire_at':'2 minents'
+            }, status=status.HTTP_200_OK)
+
 
 
 class VerifyOTPView(APIView):
     """
-    API view to verify the submitted OTP and activate the user.
+    API view to verify OTP and activate the user account.
     """
+    serializer_class = VerifyOTPSerializer
+
     def post(self, request, *args, **kwargs):
-        serializer = VerifyOTPSerializer(data=request.data)
-        if serializer.is_valid():
-            phone_number = serializer.validated_data['phone_number']
-            submitted_otp = serializer.validated_data['otp']
-            
-            # Retrieve OTP from cache
-            is_verified = verify_otp(phone_number,submitted_otp)
-            
-            if not is_verified:
-                return Response({"error": "OTP is not valid."}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                user = User.objects.get(phone_number=phone_number)
-                if user.is_active:
-                    return Response({"message": "User is already active."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        username = serializer.validated_data['username']
+        otp_entered = serializer.validated_data['otp']
+        
+        user = get_object_or_404(User, username=username)
+        
+        if user.is_active:
+            return Response({"error": "This account is already active."}, status=status.HTTP_400_BAD_REQUEST)
+        
                 
-                # Activate the user
-                user.is_active = True
-                user.save()
-                
+        # Retrieve OTP from cache
+        is_verified = verify_otp(user.phone_number,otp_entered)
 
-                return Response({
-                    "message": "Account verified successfully. You can now log in."
-                    # "tokens": tokens 
-                }, status=status.HTTP_200_OK)
+        if not is_verified:
+            return Response({"error": "OTP is not valid."}, status=status.HTTP_400_BAD_REQUEST)
 
-            except User.DoesNotExist:
-                return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-                
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Activate user and clear OTP
+        user.is_active = True
+        user.save()
+
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        addresses_list = [
+        {
+        "id": address.id,
+        "label": address.label,
+        "address_line_1": address.address_line_1,
+        "address_line_2": address.address_line_2,
+        "city": address.city,
+        "state": address.state,
+        "postal_code": address.postal_code,
+        "country": address.country,
+        # Note: Datetime fields should ideally be serialized to a string format
+        # DRF serializers do this automatically, but here we can just pass them.
+        "created_at": address.created_at,
+        "updated_at": address.updated_at,
+        }
+        for address in user.addresses.all() # We loop through all addresses here
+        ]
+
+        return Response({
+            "access": str(access),
+            "refresh": str(refresh),
+            "user": {
+                "id": user.id,
+                "username":user.username,
+                "email":user.email,
+                "first_name":user.first_name,
+                "last_name":user.last_name,
+                "phone":user.phone_number,
+                "is_seller":user.is_seller,
+                "picture":user.profile_picture or "no picture",
+                "address":addresses_list
+            }
+        }, status=status.HTTP_200_OK)
 
 
-
-class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
+class UserProfileView(generics.RetrieveUpdateAPIView):
     """
     Manage the authenticated user's profile.
     Supports GET, PUT, PATCH, DELETE.
@@ -143,23 +183,43 @@ class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
         return self.request.user
     
 
+
+
+
 class AddressViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing user addresses.
-    Provides list, create, retrieve, update, and destroy actions.
+    ViewSet for managing user addresses with logical delete.
     """
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
-        This view should return a list of all the addresses
-        for the currently authenticated user.
+        Return all addresses for the current user that are not deleted.
         """
-        return self.request.user.addresses.all()
+        return self.request.user.addresses.filter(is_deleted=False)
 
     def perform_create(self, serializer):
         """
         Assign the current user to the address when creating a new one.
         """
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Perform a soft delete instead of a hard delete.
+        """
+        instance = self.get_object()
+        instance.delete()  # Calls BaseModel.delete -> sets is_deleted=True
+        return Response({"message":"deleted address seccesfully"},status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+class SellerRegistrationAPIView(generics.CreateAPIView):
+    """
+    API endpoint for registering a new seller and their store.
+    """
+    queryset = Store.objects.all()
+    serializer_class = StoreRegistrationSerializer
+    permission_classes = [AllowAny] 

@@ -22,8 +22,12 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    #accounts
     path('api/accounts/', include('accounts.urls')),
     path('api/myuser/',include('accounts.urls_myuser')),
+    #product
+    path('api/product/',include('products.urls')),
+    path('api/categories/',include('products.urls_categories')),
      # API Schema:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:
