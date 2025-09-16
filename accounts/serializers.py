@@ -1,15 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
+from .models import CustomUser
+from stores.models import Store
 
-# دریافت مدل کاربر فعال پروژه
+
 User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
-    سریالایزر برای ثبت‌نام کاربران جدید.
-    این سریالایزر شماره تلفن، ایمیل (اختیاری) و رمز عبور را دریافت کرده
-    و پس از اعتبارسنجی، کاربر جدیدی ایجاد می‌کند.
+    سریالایزر برای ثبت‌نام کاربران جدید با استفاده از نام کاربری، شماره تلفن و ایمیل.
     """
     password = serializers.CharField(
         write_only=True, 
@@ -27,59 +28,62 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         
-        fields = ['phone_number', 'email', 'password', 'password2', 'role']
-        extra_kwargs = {
-            'email': {'required': False},
-            'role': {'required': False} # نقش کاربر در هنگام ثبت‌نام اختیاری است
-        }
+        fields = ['username', 'phone_number', 'email', 'password', 'password2']
+        
 
     def validate(self, attrs):
-        
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
-                
+        
         attrs.pop('password2')
         return attrs
 
     def create(self, validated_data):
-        
+        """
+        متد create برای ساخت کاربر جدید با استفاده از create_user.
+        """
         user = User.objects.create_user(
+            username=validated_data['username'],
             phone_number=validated_data['phone_number'],
+            email=validated_data['email'],
             password=validated_data['password'],
-            email=validated_data.get('email'),
-            role=validated_data.get('role', User.Role.CUSTOMER) # اگر نقش مشخص نشود، مشتری در نظر گرفته می‌شود
+            # اگر نقش مشخص نشود، به صورت پیش‌فرض مشتری در نظر گرفته می‌شود
+            role=validated_data.get('role', User.Role.CUSTOMER) 
         )
         return user
 
+
 class UserSerializer(serializers.ModelSerializer):
     """
-    Serializer for displaying basic user information safely.
-    Used as a nested serializer in the registration success response.
+    سریالایزر برای نمایش اطلاعات کاربر.
+    در پاسخ ثبت‌نام موفق استفاده می‌شود.
     """
     class Meta:
         model = User
-        fields = ('id', 'username', 'email')
+        # فیلدهای بیشتری برای نمایش اطلاعات کامل‌تر کاربر اضافه شد
+        fields = ('id', 'username', 'phone_number', 'email', 'role')
+
 
 class RegisterSuccessSerializer(serializers.Serializer):
     """
-    Defines the schema for a successful registration response.
-    This is used exclusively for documentation purposes in @extend_schema.
+    این سریالایزر صرفا برای مستندسازی خروجی در Swagger/OpenAPI استفاده می‌شود.
     """
     user = UserSerializer()
-    message = serializers.CharField()
+    message = serializers.CharField(default="User registered successfully.")
+
 
 class OTPRequestSerializer(serializers.Serializer):
     """
-    Serializer for requesting an OTP. Just needs the phone number.
+    Serializer to request a new OTP. Takes username as input.
     """
-    phone_number = serializers.CharField(max_length=15)
+    username = serializers.CharField(required=True)
 
 class VerifyOTPSerializer(serializers.Serializer):
     """
-    Serializer for verifying the OTP code.
+    Serializer to verify the OTP and activate the user.
     """
-    phone_number = serializers.CharField(max_length=15)
-    otp = serializers.CharField(max_length=6, write_only=True)
+    username = serializers.CharField(required=True)
+    otp = serializers.CharField(required=True, max_length=6)
 
 from .models import CustomUser, Address
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -102,6 +106,65 @@ class AddressSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Address
-        fields = ('id', 'user', 'province', 'city', 'street', 'postal_code')
+        fields = "__all__"
         read_only_fields = ('id', 'user')
 
+
+class SellerUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer specifically for creating a user with the 'SELLER' role.
+    """
+    
+    password = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ('phone_number', 'password', 'email', 'first_name', 'last_name')
+        extra_kwargs = {
+            'email': {'required': False, 'allow_blank': True},
+            'first_name': {'required': False, 'allow_blank': True},
+            'last_name': {'required': False, 'allow_blank': True},
+        }
+
+    def create(self, validated_data):
+
+        user = CustomUser.objects.create_user(
+            phone_number=validated_data['phone_number'],
+            password=validated_data['password'],
+            email=validated_data.get('email'),
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            role=CustomUser.Role.SELLER,
+            is_active=False
+        )
+        return user
+
+
+class StoreRegistrationSerializer(serializers.ModelSerializer):
+    """
+    Main serializer for registering a store.
+    It includes nested user data for the owner.
+    """
+    owner = SellerUserSerializer()
+
+    class Meta:
+        model = Store
+        fields = ('owner', 'name', 'description', 'address')
+
+    def create(self, validated_data):
+        # Pop the nested owner data
+        owner_data = validated_data.pop('owner')
+        
+        # Use a database transaction to ensure atomicity.
+        # This means if store creation fails, user creation is also rolled back.
+        with transaction.atomic():
+            # Create the user using the SellerUserSerializer
+            owner_serializer = SellerUserSerializer(data=owner_data)
+            owner_serializer.is_valid(raise_exception=True)
+            owner = owner_serializer.save()
+
+            # Create the store and link the owner
+            # **owner is the user instance, validated_data contains store fields
+            store = Store.objects.create(owner=owner, **validated_data)
+        
+        return store
