@@ -49,7 +49,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=15, unique=True, db_index=True, verbose_name="شماره تلفن")
     email = models.EmailField(unique=True, verbose_name="آدرس ایمیل")
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="نقش کاربر")
-    is_active = models.BooleanField(default=True, verbose_name="فعال") 
+    is_active = models.BooleanField(default=False, verbose_name="فعال") 
     is_staff = models.BooleanField(default=False, verbose_name="وضعیت کارمند")
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)

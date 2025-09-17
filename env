@@ -1,0 +1,18 @@
+# kavenegar otp service
+api = '584B3044757537715A4C6E704875412F387A78785537397A67734C516B6B316369537555682B784D51434D3D'
+
+
+# PostgreSQL Config
+DB_NAME=kastomy
+DB_USER=postgres
+DB_PASSWORD=123
+DB_HOST=db  
+DB_PORT=5432
+
+#Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+#Django
+DJANGO_SECRET_KEY='django-insecure--r*k%#_*4l8yc6cyvmg92w)(ooo7&mu)u66k-s4p5fvthvgd94'
+DJANGO_DEBUG=True
