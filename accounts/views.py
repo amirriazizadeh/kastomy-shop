@@ -81,16 +81,16 @@ class RequestOTPView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data['username']
+        phone_number = serializer.validated_data['phone_number']
         
-        user = get_object_or_404(User, username=username)
+        user = get_object_or_404(User, phone_number=phone_number)
 
         if user.is_active:
             return Response({"error": "This user is already active."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Generate and send a new OTP
-        otp = generate_otp(user.phone_number)
-        send_otp_code(user.phone_number, otp)
+        otp = generate_otp(phone_number)
+        send_otp_code(phone_number, otp)
         
         return Response({
             "seccses":"OTP has been sent seccesfully",
@@ -110,22 +110,21 @@ class VerifyOTPView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        username = serializer.validated_data['username']
+        phone_number = serializer.validated_data['phone_number']
         otp_entered = serializer.validated_data['otp']
         
-        user = get_object_or_404(User, username=username)
+        user = get_object_or_404(User, phone_number=phone_number)
         
         if user.is_active:
             return Response({"error": "This account is already active."}, status=status.HTTP_400_BAD_REQUEST)
         
                 
         # Retrieve OTP from cache
-        is_verified = verify_otp(user.phone_number,otp_entered)
+        is_verified = verify_otp(phone_number,otp_entered)
 
         if not is_verified:
             return Response({"error": "OTP is not valid."}, status=status.HTTP_400_BAD_REQUEST)
 
-        
         # Activate user and clear OTP
         user.is_active = True
         user.save()
@@ -156,7 +155,6 @@ class VerifyOTPView(APIView):
             "refresh": str(refresh),
             "user": {
                 "id": user.id,
-                "username":user.username,
                 "email":user.email,
                 "first_name":user.first_name,
                 "last_name":user.last_name,
@@ -218,8 +216,12 @@ class AddressViewSet(viewsets.ModelViewSet):
 
 class SellerRegistrationAPIView(generics.CreateAPIView):
     """
-    API endpoint for registering a new seller and their store.
+    API endpoint for a customer to register as a seller by creating a store.
     """
-    queryset = Store.objects.all()
     serializer_class = StoreRegistrationSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context

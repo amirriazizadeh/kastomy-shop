@@ -5,9 +5,8 @@ from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,Permissi
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, phone_number, email, password=None, **extra_fields):
-        if not username:
-            raise ValueError('The Username field must be set')
+    def create_user(self, phone_number, email, password=None, **extra_fields):
+        
         if not phone_number:
             raise ValueError('The Phone Number field must be set')
         if not email:
@@ -15,7 +14,7 @@ class UserManager(BaseUserManager):
             
         email = self.normalize_email(email)
         user = self.model(
-            username=username, 
+ 
             phone_number=phone_number, 
             email=email, 
             **extra_fields
@@ -24,7 +23,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, phone_number, email, password=None, **extra_fields):
+    def create_superuser(self, phone_number, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -34,8 +33,7 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
             
-        return self.create_user(username, phone_number, email, password, **extra_fields)
-
+        return self.create_user( phone_number, email, password, **extra_fields)
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
@@ -45,7 +43,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         SELLER = 'SELLER', 'فروشگاه'
         ADMIN = 'ADMIN', 'مدیر'
 
-    username = models.CharField(max_length=150, unique=True, db_index=True, verbose_name="نام کاربری")
+    
     phone_number = models.CharField(max_length=15, unique=True, db_index=True, verbose_name="شماره تلفن")
     email = models.EmailField(unique=True, verbose_name="آدرس ایمیل")
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="نقش کاربر")
@@ -57,18 +55,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_seller = models.BooleanField(default=False,verbose_name='فروشنده ای؟')
     objects = UserManager()
 
-    # فیلد لاگین به username تغییر کرد
-    USERNAME_FIELD = 'username'
-    
-    # فیلدهای اجباری هنگام ساخت کاربر با دستور createsuperuser
-    REQUIRED_FIELDS = ['phone_number', 'email']
+    USERNAME_FIELD = 'phone_number'
+    REQUIRED_FIELDS = ['email']
 
     class Meta:
         verbose_name = "کاربر"
         verbose_name_plural = "کاربران"
 
     def __str__(self):
-        return self.username
+        return self.phone_number
 
 class Address(BaseModel):
     
