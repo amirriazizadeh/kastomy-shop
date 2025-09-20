@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from core.models import BaseModel
 from products.models import ProductVariant
+from accounts.models import Address
 
 class Store(BaseModel):
     
@@ -13,8 +14,8 @@ class Store(BaseModel):
     )
     name = models.CharField(max_length=200, unique=True, verbose_name="نام فروشگاه")
     description = models.TextField(blank=True, verbose_name="توضیحات")
-    address = models.TextField(verbose_name="آدرس فروشگاه")
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    address = models.ForeignKey(Address,on_delete=models.PROTECT,verbose_name='آدرس')
+    is_active = models.BooleanField(default=False, verbose_name="فعال")
 
     class Meta:
         verbose_name = "فروشگاه"

@@ -8,7 +8,7 @@ from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPReques
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.views import APIView
 from .utils import generate_otp,verify_otp
-from utils import send_otp_code
+from utils import send_otp_code,send_otp_code_by_email
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from stores.models import Store
@@ -91,7 +91,7 @@ class RequestOTPView(APIView):
         # Generate and send a new OTP
         otp = generate_otp(phone_number)
         send_otp_code(phone_number, otp)
-        
+        send_otp_code_by_email(user.email,otp)
         return Response({
             "seccses":"OTP has been sent seccesfully",
             "message": "A new verification code has been sent.",
@@ -210,7 +210,6 @@ class AddressViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.delete()  # Calls BaseModel.delete -> sets is_deleted=True
         return Response({"message":"deleted address seccesfully"},status=status.HTTP_204_NO_CONTENT)
-
 
 
 
