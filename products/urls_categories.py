@@ -1,12 +1,15 @@
+# product/urls.py or your_project/urls.py
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoriesViewSet
+from .views import (
+    ProductListCreateAPIView, ProductDetailAPIView,
+    CategoryListCreateAPIView, CategoryDetailAPIView # ویوهای جدید را ایمپورت کنید
+)
 
-# Create a router and register our viewset with it.
-router = DefaultRouter()
-router.register(r'', CategoriesViewSet, basename='categories')
 
-# The API URLs are now determined automatically by the router.
 urlpatterns = [
-    path('', include(router.urls)),
+    
+    path('', CategoryListCreateAPIView.as_view(), name='category-list-create'),
+    path('<int:pk>/', CategoryDetailAPIView.as_view(), name='category-detail'),
 ]

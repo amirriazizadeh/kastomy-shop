@@ -1,12 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import ProductViewSet
 
-# Create a router and register our viewset with it.
-router = DefaultRouter()
-router.register(r'', ProductViewSet, basename='product')
+from django.urls import path
+from .views import ProductListCreateAPIView, ProductDetailAPIView
 
-# The API URLs are now determined automatically by the router.
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', ProductListCreateAPIView.as_view(), name='product-list-create'),
+    path('<int:pk>/', ProductDetailAPIView.as_view(), name='product-detail'),
 ]
