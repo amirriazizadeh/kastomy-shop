@@ -7,7 +7,7 @@ from core.models import BaseModel
 
 class Category(BaseModel):
     
-    name = models.CharField(max_length=200, verbose_name="نام دسته‌بندی")
+    name = models.CharField(unique=True,max_length=200, verbose_name="نام دسته‌بندی")
     slug = models.SlugField(max_length=250, unique=True, allow_unicode=True, verbose_name="اسلاگ")
     parent = models.ForeignKey(
         'self',
@@ -32,9 +32,8 @@ class Product(BaseModel):
     name = models.CharField(max_length=255, verbose_name="نام محصول")
     slug = models.SlugField(max_length=255, unique=True, allow_unicode=True, db_index=True, verbose_name="اسلاگ")
     description = models.TextField(verbose_name="توضیحات")
-    category = models.ForeignKey(
+    category = models.ManyToManyField(
         Category,
-        on_delete=models.CASCADE,
         related_name='products',
         verbose_name="دسته‌بندی"
     )

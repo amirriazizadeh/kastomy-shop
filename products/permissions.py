@@ -1,10 +1,11 @@
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-class IsStaffUser(permissions.BasePermission):
+class IsStaffOrReadOnly(BasePermission):
     """
-    Allows access only to staff users.
+    Only staff users can create, update or delete.
+    Others have read-only access.
     """
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_staff
-
-
+        if request.method in SAFE_METHODS:
+            return True
+        return bool(request.user and request.user.is_staff)
