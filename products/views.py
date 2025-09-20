@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from .models import Product,Category
 from .serializers import ProductSerializer,CategorySerializer
 from rest_framework.permissions import IsAuthenticated,AllowAny
+from .permissions import IsStaffUser
 
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
@@ -22,8 +23,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         - Create and Destroy actions require authentication.
         - Other actions (list, retrieve, update) are allowed for anyone.
         """
-        if self.action in ['create', 'destroy']:
-            permission_classes = [IsAuthenticated] 
+        if self.action in ['create', 'destroy','update']:
+            permission_classes = [IsAuthenticated,IsStaffUser] 
         else:
             permission_classes = [AllowAny]
             

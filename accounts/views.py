@@ -166,6 +166,22 @@ class VerifyOTPView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            # The client should send the refresh token in the request body
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            # This can happen if the token is invalid or already blacklisted
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """
     Manage the authenticated user's profile.
