@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from core.models import BaseModel
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,PermissionsMixin
-
+from django.core.validators import RegexValidator
 
 class UserManager(BaseUserManager):
     def create_user(self, phone_number, email, password=None, **extra_fields):
@@ -42,9 +42,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         CUSTOMER = 'CUSTOMER', 'مشتری'
         SELLER = 'SELLER', 'فروشگاه'
         ADMIN = 'ADMIN', 'مدیر'
-
+    phone_number_validator = RegexValidator(
+        regex=r'^09\d{9}$',
+        message="شماره تلفن باید با فرمت '09123456789' وارد شود."
+    )
     
-    phone_number = models.CharField(max_length=15, unique=True, db_index=True, verbose_name="شماره تلفن")
+    phone_number = models.CharField(max_length=15, unique=True, db_index=True, verbose_name="شماره تلفن",validators=[phone_number_validator])
     email = models.EmailField(unique=True, verbose_name="آدرس ایمیل")
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.CUSTOMER, verbose_name="نقش کاربر")
     is_active = models.BooleanField(default=False, verbose_name="فعال") 
@@ -78,13 +81,20 @@ class Address(BaseModel):
     address_line_2 = models.CharField(max_length=255, blank=True, null=True, verbose_name="آدرس (خط دوم)")
     city = models.CharField(max_length=100, verbose_name="شهر")
     state = models.CharField(max_length=100, verbose_name="استان/ایالت")
-    postal_code = models.CharField(max_length=20, verbose_name="کد پستی")
+    postal_code = models.CharField(unique=True,max_length=20, verbose_name="کد پستی")
     country = models.CharField(max_length=100, verbose_name="کشور")
+    is_main = models.BooleanField(default=False, verbose_name="آدرس اصلی")
 
     class Meta:
         verbose_name = "آدرس"
         verbose_name_plural = "آدرس‌ها"
-        
 
     def __str__(self):
         return f'{self.label} - {self.user.first_name}'
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            Address.objects.filter(user=self.user, is_main=True).update(is_main=False)
+            self.is_main = True
+            
+        super(Address, self).save(*args, **kwargs)

@@ -4,11 +4,7 @@ from core.models import BaseModel
 from stores.models import StoreItem
 from accounts.models import Address
 
-
-
-
-
-class Order(BaseModel):
+class Order(models.Model):
     
     class OrderStatus(models.IntegerChoices):
         PENDING = 1, 'منتظر پرداخت'
@@ -59,6 +55,7 @@ class Order(BaseModel):
         blank=True,
         verbose_name="یادداشت مشتری"
     )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     class Meta:
         verbose_name = "سفارش"
         verbose_name_plural = "سفارش‌ها"
@@ -66,6 +63,7 @@ class Order(BaseModel):
 
     def __str__(self):
         return f"سفارش شماره {self.id} برای کاربر {self.user.phone_number}"
+    
 
 class OrderItem(BaseModel):
     

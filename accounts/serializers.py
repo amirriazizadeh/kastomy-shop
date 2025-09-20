@@ -99,6 +99,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ('phone_number', 'role', 'is_active', 'is_staff')
 
+    def validate(self, attrs):
+        # self.instance is the object being updated. It is None on create.
+        # self.initial_data is the raw incoming data from the request.
+        if self.instance and 'phone_number' in self.initial_data:
+            raise serializers.ValidationError({'phone_number': 'شماره تلفن قابل تغییر نیست.'})
+        return attrs
+    
 class AddressSerializer(serializers.ModelSerializer):
     """
     Serializer for the Address object
@@ -108,29 +115,59 @@ class AddressSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ('id', 'user')
 
-
-
+    
 
 class StoreRegistrationSerializer(serializers.ModelSerializer):
     """
     Serializer to create a store and upgrade the user to a seller.
     """
+    address = serializers.PrimaryKeyRelatedField(
+        queryset=Address.objects.all(),
+        write_only=True,
+        label="انتخاب آدرس"
+    )
+
     class Meta:
         model = Store
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'address']
+
+    def __init__(self, *args, **kwargs):
+        """
+        Dynamically filter the address queryset to only show addresses
+        belonging to the currently authenticated user.
+        """
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            self.fields['address'].queryset = Address.objects.filter(user=request.user)
+
+    def validate(self, data):
+        """
+        Check if the user already owns a store.
+        """
+        address = data.get('address')
+        if address and address.is_deleted:
+            raise serializers.ValidationError({"address": "این آدرس حذف شده است و نمی‌توان از آن استفاده کرد."})
+
+        request_user = self.context['request'].user
+        if Store.objects.filter(owner=request_user).exists():
+             raise serializers.ValidationError("This user already has a store.")
+        return data
 
     def create(self, validated_data):
+        """
+        Create the store, link the address, and upgrade the user to a seller.
+        """
         request_user = self.context['request'].user
-
-        if request_user.is_seller:
-            raise serializers.ValidationError("This user is already a seller and cannot create a new store.")
-
+        
         try:
             with transaction.atomic():
-                validated_data['owner'] = request_user
-                store = Store.objects.create(**validated_data)
-                request_user.is_seller = True
-                request_user.save(update_fields=['is_seller'])
+                store = Store.objects.create(owner=request_user, **validated_data)
+                
+                if hasattr(request_user, 'is_seller'):
+                    request_user.is_seller = True
+                    request_user.save(update_fields=['is_seller'])
+                    
                 return store
         except Exception as e:
             raise serializers.ValidationError(str(e))
