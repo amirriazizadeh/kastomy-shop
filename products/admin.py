@@ -47,6 +47,6 @@ class SoftDeleteAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(SoftDeleteAdmin):
-    list_display = ('name', 'created_at', 'is_deleted')
-    list_filter = ('is_deleted',)
+    list_display = ('name', )
+    list_filter = ('name',)
     search_fields = ('name',)

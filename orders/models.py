@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 from django.conf import settings
 from core.models import BaseModel
@@ -65,7 +66,7 @@ class Order(models.Model):
         return f"سفارش شماره {self.id} برای کاربر {self.user.phone_number}"
     
 
-class OrderItem(BaseModel):
+class OrderItem(models.Model):
     
     class OrderItemStatus(models.IntegerChoices):
         PENDING = 1, 'در انتظار تایید'
@@ -107,9 +108,26 @@ class OrderItem(BaseModel):
         return self.quantity * self.price
 
 
+class Discount(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    percent = models.PositiveIntegerField()
+    expire_at = models.DateTimeField()
+    usage_limit = models.PositiveIntegerField(default=1)  # تعداد مجاز استفاده هر کاربر
+
+    def __str__(self):
+        return self.code
+
+class DiscountUsage(models.Model):
+    discount = models.ForeignKey(Discount, on_delete=models.CASCADE, related_name='usages')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('discount', 'user')  # جلوگیری از ثبت چند ردیف تکراری
 
 
-class Payment(BaseModel):
+class Payment(models.Model):
     
     class PaymentStatus(models.IntegerChoices):
         PENDING = 1, 'در انتظار پرداخت'
@@ -143,7 +161,7 @@ class Payment(BaseModel):
         verbose_name="پاسخ درگاه",
         help_text="پاسخ کامل دریافت شده از درگاه برای دیباگ و پیگیری."
     )
-
+    created_at = models.DateTimeField(auto_now_add=True,verbose_name='تاریخ پرداخت')
     class Meta:
         verbose_name = "پرداخت"
         verbose_name_plural = "پرداخت‌ها"
