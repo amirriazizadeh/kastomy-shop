@@ -28,6 +28,8 @@ urlpatterns = [
     #product
     path('api/product/',include('products.urls')),
     path('api/categories/',include('products.urls_categories')),
+    # cart
+    path('api/mycart/', include('cart.urls')),
      # API Schema:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:

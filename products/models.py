@@ -64,7 +64,7 @@ class ProductImage(BaseModel):
 
 class Attribute(BaseModel):
     
-    name = models.CharField(max_length=100, unique=True, verbose_name="نام ویژگی")
+    name = models.CharField(default="ویژگی",max_length=100, unique=True, verbose_name="نام ویژگی")
     
     class Meta:
         verbose_name = "ویژگی"
@@ -77,7 +77,7 @@ class Attribute(BaseModel):
 class AttributeValue(BaseModel):
     
     attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name='values', verbose_name="ویژگی")
-    value = models.CharField(max_length=100, verbose_name="مقدار")
+    value = models.CharField(default="فاقد ویژگی",max_length=100, verbose_name="مقدار")
     
     class Meta:
         verbose_name = "مقدار ویژگی"

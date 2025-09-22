@@ -28,7 +28,7 @@ class StoreItem(BaseModel):
     
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='store_items', verbose_name="فروشگاه")
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='store_items', verbose_name="تنوع محصول")
-    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="قیمت")
+    price = models.DecimalField(max_digits=12, decimal_places=2,null=False,blank=False, verbose_name="قیمت")
     stock_quantity = models.PositiveIntegerField(default=0, verbose_name="موجودی انبار")
     sku = models.CharField(max_length=100, blank=True, help_text="شناسه انبارداری مختص این فروشگاه", verbose_name="SKU")
     is_active = models.BooleanField(default=True, verbose_name="فعال/غیرفعال")
