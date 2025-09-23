@@ -9,7 +9,7 @@ class Order(models.Model):
     
     class OrderStatus(models.IntegerChoices):
         PENDING = 1, 'منتظر پرداخت'
-        PROCESSING = 2, 'در حال پردازش'
+        PAIED = 2, 'پرداخت شده'
         SHIPPED = 3, 'ارسال شده'
         DELIVERED = 4, 'تحویل شده'
         CANCELLED = 5, 'لغو شده'
@@ -62,6 +62,21 @@ class Order(models.Model):
         verbose_name_plural = "سفارش‌ها"
         ordering = ['-created_at']
 
+    payment_reference = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name="کد پیگیری پرداخت (RefID)"
+    )
+    
+    # فیلد جدید برای ذخیره کد Authority
+    payment_authority = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name="کد Authority زرین‌پال"
+    )
+
     def __str__(self):
         return f"سفارش شماره {self.id} برای کاربر {self.user.phone_number}"
     
@@ -101,7 +116,7 @@ class OrderItem(models.Model):
         verbose_name_plural = "آیتم‌های سفارش"
 
     def __str__(self):
-        return f"{self.quantity} عدد از {self.store_item.product.name} در سفارش {self.order.id}"
+        return f"{self.quantity} عدد از {self.store_item.variant.product.name} در سفارش {self.order.id}"
 
     @property
     def subtotal(self):
