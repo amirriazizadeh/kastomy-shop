@@ -18,3 +18,9 @@ def verify_otp(phone, otp):
         r.delete(f"otp:{phone}") 
         return True
     return False
+
+
+def delete_otp():
+    pass
+
+
