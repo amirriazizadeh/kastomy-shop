@@ -8,12 +8,12 @@ from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPReques
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.views import APIView
 from .utils import generate_otp,verify_otp
-from utils import send_otp_code,send_otp_code_by_email
+from utils import send_otp_code
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from stores.models import Store
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from .tasks import send_otp_code_by_email
 
 User = get_user_model()
 
@@ -88,10 +88,9 @@ class RequestOTPView(APIView):
         if user.is_active:
             return Response({"error": "This user is already active."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Generate and send a new OTP
         otp = generate_otp(phone_number)
         send_otp_code(phone_number, otp)
-        send_otp_code_by_email(user.email,otp)
+        send_otp_code_by_email.delay(user.email,otp)
         return Response({
             "seccses":"OTP has been sent seccesfully",
             "message": "A new verification code has been sent.",
