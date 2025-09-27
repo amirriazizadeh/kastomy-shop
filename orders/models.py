@@ -37,12 +37,6 @@ class Order(models.Model):
         verbose_name="وضعیت کلی سفارش"
     )
     is_paid = models.BooleanField(default=False, verbose_name="پرداخت شده؟")
-    payment_reference = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True,
-        verbose_name="کد پیگیری پرداخت"
-    )
 
     tracking_code = models.CharField(
         max_length=100,

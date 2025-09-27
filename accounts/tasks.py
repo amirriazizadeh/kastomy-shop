@@ -11,7 +11,7 @@ from time import sleep
 
 @shared_task
 def send_otp_code_by_email(email,code):
-    sleep(5)
+    
     subject = "Verify Code Email"
     message = f"your validation code is: {code}"
     recipient_list = [email,]  

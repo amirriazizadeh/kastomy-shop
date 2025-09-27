@@ -1,6 +1,7 @@
 
 
 from django.db import transaction, IntegrityError
+from django.urls import reverse
 from rest_framework import generics, permissions,status
 from .models import Order,OrderItem
 from .serializers import OrderSerializer,CheckoutSerializer
@@ -90,214 +91,83 @@ class CheckoutAPIView(APIView):
 
 
 
-
-
-
-
-ZP_API_REQUEST = "https://sandbox.zarinpal.com/pg/v4/payment/request.json"
-ZP_API_STARTPAY = "https://sandbox.zarinpal.com/pg/StartPay/"
-ZP_API_VERIFY = "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"
-CALLBACK_URL = "http://127.0.0.1:8000/api/payments/verify/"  
-
-
-class PaymentRequestAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def post(self, request,order_id ,*args, **kwargs):
-        global order
-        try:
-            order = Order.objects.get(id=order_id, user=request.user, is_paid=False)
-        except Order.DoesNotExist:
-            return Response({"error": "سفارش معتبر یافت نشد یا قبلاً پرداخت شده است."},
-                            status=status.HTTP_404_NOT_FOUND)
-        price = int(order.final_price)*1000
-        data = {
-            "merchant_id": settings.MERCHANT,
-            "amount": price,
-            "description": f"پرداخت سفارش شماره {order.id}",
-            "callback_url": CALLBACK_URL,
-            "metadata": {"mobile": "09184222500", "email": "ariazizade@gmail.com"}
-        }
-        data = json.dumps(data)
-        headers = {'content-type': 'application/json', 'content-length': str(len(data))}
-        response = requests.post(ZP_API_REQUEST, data=data, headers=headers)
-        if response.status_code == 200:
-            response = response.json()
-            if response["data"]['code'] == 100:
-                url = f"{ZP_API_STARTPAY}{response['data']['authority']}"
-                return redirect(url)
-            else:
-                return HttpResponse(str(response['errors']))
-        else:
-            return HttpResponse("مشکلی پیش آمد.")
-
-
-
-
-
-
-class VerifyPaymentAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def get(self, request):
-        status_param = request.GET.get('Status')
-        authority = request.GET.get('Authority')
-        if status_param != "OK":
-            return HttpResponse("پرداخت شما ناموفق بود.", status=400)
-        try:
-            order = Order.objects.get(payment_authority=authority, user=request.user, is_paid=False)
-        except Order.DoesNotExist:
-            return HttpResponse("سفارش معتبر یافت نشد یا قبلاً پرداخت شده است.", status=404)
-        data = {
-            "merchant_id": settings.MERCHANT,
-            "amount": int(order.final_price), 
-            "authority": authority
-            }
-        headers = {'content-type': 'application/json', 'Accept': 'application/json'}
-        response = requests.post(ZP_API_VERIFY, data=json.dumps(data), headers=headers)
-        if response.status_code != 200:
-            return HttpResponse("خطا در ارتباط با زرین‌پال.", status=500)
-        res = response.json()
-        code = res['data']['code']
-        if code == 100:  
-            with transaction.atomic():
-                order.is_paid = True
-                order.status = Order.OrderStatus.PAIED
-                order.payment_reference = res['data']['ref_id']
-                order.save(update_fields=['is_paid', 'status', 'payment_reference'])
-                from cart.models import Cart
-                Cart.objects.filter(user=request.user, is_active=False).delete()
-            return HttpResponse(f"پرداخت موفق بود. کد پیگیری: {order.payment_reference}")
-        elif code == 101:  
-            return HttpResponse("این پرداخت قبلاً تأیید شده بود.")
-        else:
-            return HttpResponse("پرداخت شما ناموفق بود.", status=400)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# //////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# views.py
-import json
 import requests
-from django.conf import settings
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.http import JsonResponse, HttpResponseRedirect
+from django.shortcuts import redirect
 
-if settings.SANDBOX:
-    sandbox = 'sandbox'
-else:
-    sandbox = 'payment'
+MERCHANT = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+ZP_API_REQUEST = "https://sandbox.zarinpal.com/pg/v4/payment/request.json"
+ZP_API_VERIFY = "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"
+ZP_API_STARTPAY = "https://sandbox.zarinpal.com/pg/StartPay/"
 
-ZP_API_REQUEST = f"https://{sandbox}.zarinpal.com/pg/v4/payment/request.json"
-ZP_API_STARTPAY = f"https://{sandbox}.zarinpal.com/pg/StartPay/"
-ZP_API_VERIFY = f"https://{sandbox}.zarinpal.com/pg/v4/payment/verify.json"
+CALLBACK_URL = "http://127.0.0.1:8000/api/payments/verify/"  # لوکال برای تست
 
-description = "نهایی کردن خرید شما از سایت ما" # it's only an example
-
-price = 100000 # it's only an example
-CallbackURL = 'http://localhost:8000/api/payments/verify/' # you should customize it
-
-
-
-
-
-def request_payment(request):
+def payment_request(request,order_id):
+    global order
+    try:
+        order = Order.objects.get(id=order_id, user=request.user, is_paid=False)
+    except Order.DoesNotExist:
+            return JsonResponse("not define this order")
+    amount = int(order.final_price)
+    description = "خرید تستی"
     data = {
-        "merchant_id": settings.MERCHANT,
-        "amount": price,
+        "merchant_id": MERCHANT,
+        "amount": amount,
+        "callback_url": CALLBACK_URL,
         "description": description,
-        "callback_url": CallbackURL,
     }
-    data = json.dumps(data)
-
-    headers = {'content-type': 'application/json', 'content-length': str(len(data))}
-
-    response = requests.post(ZP_API_REQUEST, data=data, headers=headers)
-
-    if response.status_code == 200:
-        response = response.json()
-
-        if response["data"]['code'] == 100:
-            url = f"{ZP_API_STARTPAY}{response['data']['authority']}"
-            return redirect(url)
-
-        else:
-            return HttpResponse(str(response['errors']))
-
-    else:
-        return HttpResponse("مشکلی پیش آمد.")
+    headers = {"accept": "application/json", "content-type": "application/json"}
     
+    res = requests.post(ZP_API_REQUEST, json=data, headers=headers)
+    if res.status_code == 200:
+        res_json = res.json()
+        if res_json["data"]["code"] == 100:
+            authority = res_json["data"]["authority"]
+            order.payment_authority=authority
+            return redirect(ZP_API_STARTPAY + authority)
+        else:
+            return JsonResponse({"error": res_json["errors"]})
+    else:
+        return JsonResponse({"error": "خطا در ارتباط با زرین‌پال"})
 
 
-
-def verify(request):
-    status = request.GET.get('Status')
-    authority = request.GET['Authority']
-
+def payment_verify(request):
+    
+    authority = request.GET.get("Authority")
+    status = request.GET.get("Status")
+    amount=int(order.final_price)
     if status == "OK":
         data = {
-            "merchant_id": settings.MERCHANT,
-            "amount": price,
-            "authority": authority
+            "merchant_id": MERCHANT,
+            "amount": amount,
+            "authority": authority,
         }
-        data = json.dumps(data)
-
-        headers = {'content-type': 'application/json', 'Accept': 'application/json'}
-
-        response = requests.post(ZP_API_VERIFY, data=data, headers=headers)
-
-        if response.status_code == 200:
-            response = response.json()
-            if response['data']['code'] == 100:
-                # put your logic here
-                return HttpResponse("خرید شما با موفقیت انجام شد.")
-
-            elif response['data']['code'] == 101:
-                return HttpResponse("این پرداخت قبلا انجام شده است.")
-
+        headers = {"accept": "application/json", "content-type": "application/json"}
+        res = requests.post(ZP_API_VERIFY, json=data, headers=headers)
+        if res.status_code == 200:
+            res_json = res.json()
+            if res_json["data"]["code"] == 100:
+                with transaction.atomic():
+                    order.is_paid = True
+                    order.status = Order.OrderStatus.PAIED
+                    order.payment_reference = str(res_json["data"]["ref_id"])
+                    order.payment_authority = str(authority)
+                    order.save(update_fields=['is_paid', 'status', 'payment_reference','payment_authority'])
+                from cart.models import Cart
+                Cart.objects.filter(user=request.user, is_active=False).delete()
+                return JsonResponse({"status": "success", "ref_id": res_json["data"]["ref_id"]})
             else:
-                return HttpResponse("پرداخت شما ناموفق بود.")
-
+                return JsonResponse({"status": "failed", "code": res_json["data"]["code"]})
         else:
-            return HttpResponse("پرداخت شما ناموفق بود.")
-
+            return JsonResponse({"error": "ERROR in payment...."})
     else:
-        return HttpResponse("پرداخت شما ناموفق بود.")
+        return JsonResponse({"status": "canceled"})
+
+
+
+
+
+
 
 
 
