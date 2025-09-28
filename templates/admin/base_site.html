@@ -1,0 +1,27 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block extrahead %}
+{{ block.super }}
+<link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+<link rel="stylesheet" href="{% static 'admin/css/custom.css' %}">
+{% endblock %}
+
+{% block branding %}
+<a class="navbar-brand" href="{% url 'admin:index' %}">
+    <img src="{% static 'images/admin-logo.png' %}" alt="Logo" class="admin-logo">
+    <span class="brand-text">مارکت پلیس کاستومی</span>
+</a>
+{% endblock %}
+{% block nav-global %}
+<ul class="nav navbar-nav navbar-right">
+
+    <li><a href="{% url 'admin:logout' %}">خروج</a></li>
+</ul>
+{% endblock %}
+{% block footer %}
+<div class="text-center">
+    مارکت پلیس کاستومی
+    <small>&copy; 2025 مارکت پلیس کاستومی. تمامی حقوق محفوظ است.</small>
+
+</div>
+{% endblock %}
