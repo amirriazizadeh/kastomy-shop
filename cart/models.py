@@ -6,6 +6,9 @@ from decimal import Decimal
 from stores.models import StoreItem
 
 class Cart(models.Model):
+    class Meta:
+        verbose_name = "سبد خرید"
+        verbose_name_plural = "سبدهای خرید"
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

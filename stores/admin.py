@@ -1,54 +1,61 @@
 from django.contrib import admin
-
-# Register your models here.
-from .models import Store,StoreItem
+from .models import Store, StoreItem
 
 
+# -------------------------
+# اکشن‌های عمومی برای Logical Delete
+# -------------------------
+@admin.action(description="حذف منطقی آیتم‌های انتخاب‌شده")
+def soft_delete(modeladmin, request, queryset):
+    updated = queryset.update(is_deleted=True)
+    modeladmin.message_user(request, f"{updated} آیتم به صورت منطقی حذف شدند.")
 
 
-from django.contrib import admin
-from django.utils import timezone
-
-class SoftDeleteAdmin(admin.ModelAdmin):
-    """
-    Custom admin class to enable logical delete for models
-    that inherit from BaseModel.
-    """
-
-    # Optional: to hide logically deleted objects by default
-    def get_queryset(self, request):
-        # Exclude deleted objects from admin list view
-        qs = super().get_queryset(request)
-        return qs
-
-    # Override single object delete
-    def delete_model(self, request, obj):
-        obj.is_deleted = True
-        obj.deleted_at = timezone.now()
-        obj.save()
-
-    # Override bulk delete action
-    def delete_queryset(self, request, queryset):
-        queryset.update(is_deleted=True, deleted_at=timezone.now())
-
-    # Optional: add custom action to restore objects
-    actions = ["restore_objects"]
-
-    def restore_objects(self, request, queryset):
-        queryset.update(is_deleted=False, deleted_at=None)
-    restore_objects.short_description = "بازیابی موارد حذف‌شده"
+@admin.action(description="بازگرداندن آیتم‌های انتخاب‌شده")
+def restore_items(modeladmin, request, queryset):
+    updated = queryset.update(is_deleted=False)
+    modeladmin.message_user(request, f"{updated} آیتم بازگردانده شدند.")
 
 
+# -------------------------
+# اکشن‌های فعال/غیرفعال
+# -------------------------
+@admin.action(description="فعال‌سازی آیتم‌های انتخاب‌شده")
+def activate_items(modeladmin, request, queryset):
+    updated = queryset.update(is_active=True)
+    modeladmin.message_user(request, f"{updated} آیتم فعال شدند.")
 
+
+@admin.action(description="غیرفعال‌سازی آیتم‌های انتخاب‌شده")
+def deactivate_items(modeladmin, request, queryset):
+    updated = queryset.update(is_active=False)
+    modeladmin.message_user(request, f"{updated} آیتم غیرفعال شدند.")
+
+
+# -------------------------
+# Store Admin
+# -------------------------
 @admin.register(Store)
-class ProductAdmin(SoftDeleteAdmin):
-    list_display = ('name', 'created_at', 'is_deleted')
-    list_filter = ('is_deleted',)
-    search_fields = ('name',)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ("name", "owner", "is_active", "is_deleted", "created_at")
+    list_filter = ("is_active", "is_deleted")
+    search_fields = ("name", "owner__phone_number", "owner__email")
+    actions = [soft_delete, restore_items, activate_items, deactivate_items]
+
+    def has_delete_permission(self, request, obj=None):
+        # جلوگیری از حذف فیزیکی
+        return False
 
 
+# -------------------------
+# StoreItem Admin
+# -------------------------
 @admin.register(StoreItem)
-class ProductAdmin(SoftDeleteAdmin):
-    list_display = ('variant', 'created_at', 'is_deleted')
-    list_filter = ('is_deleted',)
-    search_fields = ('variant',)
+class StoreItemAdmin(admin.ModelAdmin):
+    list_display = ("store", "variant", "price", "stock_quantity", "is_active", "is_deleted", "created_at")
+    list_filter = ("is_active", "is_deleted", "store")
+    search_fields = ("store__name", "variant__product__name", "sku")
+    actions = [soft_delete, restore_items, activate_items, deactivate_items]
+
+    def has_delete_permission(self, request, obj=None):
+        return False
