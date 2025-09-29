@@ -22,6 +22,11 @@ class Category(BaseModel):
     class Meta:
         verbose_name = "دسته‌بندی"
         verbose_name_plural = "دسته‌بندی‌ها"
+        permissions = [
+            ("can_activate_category", "Can activate/deactivate category"),   # فعال یا غیرفعال کردن دسته
+            ("can_manage_subcategories", "Can manage subcategories"),       # مدیریت زیر دسته‌ها
+            ("can_assign_products", "Can assign products to category"),     # انتساب محصولات به دسته
+        ]
 
     def __str__(self):
         return self.name
@@ -45,6 +50,12 @@ class Product(BaseModel):
         verbose_name = "محصول (قالب)"
         verbose_name_plural = "محصولات (قالب‌ها)"
         ordering = ['name']
+        permissions = [
+            ("can_publish_product", "Can publish/unpublish product"),    # فعال یا غیرفعال کردن محصول
+            ("can_feature_product", "Can mark product as featured"),     # ویژه کردن محصول
+            ("can_rate_product", "Can rate product"),                    # اجازه دادن امتیاز (مثلا برای کاربر خاص یا ادمین)
+            ("can_manage_product_images", "Can manage product images"),  # مدیریت گالری تصاویر محصول
+        ]
 
     def __str__(self):
         return self.name

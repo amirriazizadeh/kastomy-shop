@@ -6,6 +6,14 @@ from decimal import Decimal
 from stores.models import StoreItem
 
 class Cart(models.Model):
+    class Meta:
+        verbose_name = "سبد خرید"
+        verbose_name_plural = "سبدهای خرید"
+        permissions = [
+            ("can_checkout_cart", "Can checkout cart"),     # اجازه نهایی‌کردن سبد خرید
+            ("can_clear_cart", "Can clear cart"),           # اجازه خالی کردن کل سبد
+            ("can_extend_cart", "Can extend cart expiry"),  # اجازه تمدید تاریخ انقضا
+        ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -35,8 +43,8 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(
         Cart, on_delete=models.CASCADE,
-        related_name='items', verbose_name="سبد خرید"
-    )
+        related_name='items',
+        verbose_name="سبد خرید")
     store_item = models.ForeignKey(
         StoreItem, on_delete=models.CASCADE,
         related_name='cart_items', verbose_name="آیتم فروشگاه"
@@ -50,6 +58,13 @@ class CartItem(models.Model):
     class Meta:
         verbose_name = "آیتم سبد خرید"
         verbose_name_plural = "آیتم‌های سبد خرید"
+        permissions = [
+            ("can_view_own_cartitems", "Can view own cart items"),         # دیدن آیتم‌های سبد خودش
+            ("can_change_own_cartitems", "Can change own cart items"),     # تغییر آیتم‌های سبد خودش
+            ("can_delete_own_cartitems", "Can delete own cart items"),     # حذف آیتم‌های سبد خودش
+            ("can_apply_discount_item", "Can apply discount to cart item") # اجازه اعمال تخفیف روی آیتم
+        ]
+    
 
     def __str__(self):
         return f"{self.quantity} عدد از {self.store_item.variant.product.name}"

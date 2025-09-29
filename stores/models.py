@@ -20,6 +20,12 @@ class Store(BaseModel):
     class Meta:
         verbose_name = "فروشگاه"
         verbose_name_plural = "فروشگاه‌ها"
+        permissions = [
+            ("can_activate_store", "Can activate/deactivate store"),   # فعال/غیرفعال کردن فروشگاه
+            ("can_manage_store_owner", "Can change store owner"),      # تغییر مالک فروشگاه
+            ("can_edit_store_address", "Can edit store address"),      # تغییر آدرس فروشگاه
+            ("can_manage_store_info", "Can manage store info"),        # ویرایش نام و توضیحات فروشگاه
+        ]
 
     def __str__(self):
         return self.name
@@ -36,6 +42,12 @@ class StoreItem(BaseModel):
     class Meta:
         verbose_name = "کالای فروشگاه"
         verbose_name_plural = "کالاهای فروشگاه"
+        permissions = [
+            ("can_activate_item", "Can activate/deactivate store item"),      # فعال یا غیرفعال کردن کالا
+            ("can_edit_price", "Can edit store item price"),                  # ویرایش قیمت کالا
+            ("can_edit_stock", "Can edit stock quantity"),                    # تغییر موجودی انبار
+            ("can_manage_sku", "Can manage SKU for store item"),              # مدیریت SKU
+        ]
         
 
     def __str__(self):

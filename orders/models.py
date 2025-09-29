@@ -55,6 +55,10 @@ class Order(models.Model):
         verbose_name = "سفارش"
         verbose_name_plural = "سفارش‌ها"
         ordering = ['-created_at']
+        permissions = [
+            ("can_cancel_order", "می‌تواند سفارش را لغو کند"),
+            ("can_mark_shipped", "می‌تواند سفارش را ارسال‌شده کند"),
+        ]
 
     payment_reference = models.CharField(
         max_length=100,
@@ -118,6 +122,11 @@ class OrderItem(models.Model):
 
 
 class Discount(models.Model):
+    
+    class Meta:
+        verbose_name = "تخفیف"
+        verbose_name_plural = "تخفیف‌ها"
+
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     percent = models.PositiveIntegerField()
@@ -128,6 +137,11 @@ class Discount(models.Model):
         return self.code
 
 class DiscountUsage(models.Model):
+    
+    class Meta:
+        verbose_name = "استفاده از تخفیف"
+        verbose_name_plural = "استفاده‌های تخفیف"
+
     discount = models.ForeignKey(Discount, on_delete=models.CASCADE, related_name='usages')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     used_at = models.DateTimeField(auto_now_add=True)

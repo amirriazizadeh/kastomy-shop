@@ -1,0 +1,115 @@
+/* ---------- بک‌گراند کلی ---------- */
+body {
+    background: linear-gradient(135deg, #ee11c9, #ee11c9);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    color: #000
+}
+
+/* ---------- لوگو ---------- */
+.admin-logo {
+    height: 36px;
+    vertical-align: middle;
+    margin-inline: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+/* ---------- هدر ---------- */
+#header {
+    background: linear-gradient(135deg, #ff6a88, #ff99ac);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    /* نازک */
+}
+
+/* ---------- منوی کناری ---------- */
+#nav-sidebar {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    /* نازک‌تر */
+}
+
+#nav-sidebar .nav>li>a {
+    color: #333;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+#nav-sidebar .nav>li>a:hover {
+    color: #ff4d6d;
+    background: rgba(255, 200, 210, 0.4);
+}
+
+/* ---------- جدول‌ها ---------- */
+.results table th {
+    background: #ff6a88;
+    color: #fff;
+    border: none;
+    /* بدون بوردر ضخیم */
+}
+
+.results table tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    /* خیلی نازک */
+}
+
+.results table tr:hover {
+    background-color: #ffe6ec;
+    transition: background 0.3s ease;
+}
+
+/* ---------- ماژول‌ها ---------- */
+.module {
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    /* نازک‌تر */
+    padding: 15px;
+}
+
+.module h2 {
+    border-bottom: 1px solid #ff99ac;
+    /* نازک‌تر */
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+/* ---------- دکمه‌ها ---------- */
+.button,
+.submit-row input {
+    background: linear-gradient(135deg, #ff4d6d, #e60039);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    transition: background 0.3s ease;
+}
+
+.button:hover,
+.submit-row input:hover {
+    background: linear-gradient(135deg, #ff6a88, #ff1f4d);
+}
+
+/* ---------- فوتر ---------- */
+#footer {
+    background: rgba(134, 24, 24, 0.5);
+    backdrop-filter: blur(10px);
+    color: #444;
+    padding: 16px 10px;
+    text-align: center;
+    font-size: 13px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    /* نازک‌تر */
+}
+
+#footer small {
+    display: block;
+    font-size: 11px;
+    color: #910909;
+    margin-top: 4px;
+}

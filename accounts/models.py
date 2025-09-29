@@ -42,6 +42,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         CUSTOMER = 'CUSTOMER', 'مشتری'
         SELLER = 'SELLER', 'فروشگاه'
         ADMIN = 'ADMIN', 'مدیر'
+        
     phone_number_validator = RegexValidator(
         regex=r'^09\d{9}$',
         message="شماره تلفن باید با فرمت '09123456789' وارد شود."
