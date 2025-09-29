@@ -44,13 +44,20 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ("id", "user__phone_number", "user__email")
     actions = [approve_orders, mark_as_paid, reject_orders, reset_to_pending]
 
+    # ---------------------------
+    # مجوزهای مشاهده و تغییر
+    # ---------------------------
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.has_perm("app.view_order")
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.has_perm("app.change_order")
+
     def has_delete_permission(self, request, obj=None):
-        """سفارش‌ها قابل حذف نیستند"""
+        # هیچکس حق حذف سفارش رو نداره
         return False
 
 
-from django.contrib import admin
-from .models import OrderItem
 
 
 @admin.action(description="تأیید آیتم‌های انتخاب‌شده (به در حال آماده‌سازی)")

@@ -55,6 +55,10 @@ class Order(models.Model):
         verbose_name = "سفارش"
         verbose_name_plural = "سفارش‌ها"
         ordering = ['-created_at']
+        permissions = [
+            ("can_cancel_order", "می‌تواند سفارش را لغو کند"),
+            ("can_mark_shipped", "می‌تواند سفارش را ارسال‌شده کند"),
+        ]
 
     payment_reference = models.CharField(
         max_length=100,
