@@ -1,115 +1,165 @@
-/* ---------- بک‌گراند کلی ---------- */
+/* --- CSS Variables for Easy Customization --- */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #3498db;
+    --text-color: #ecf0f1;
+    --light-text-color: #bdc3c7;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-hover-color: #4a6c8e;
+}
+
+/* --- Global Background & Typography --- */
 body {
-    background: linear-gradient(135deg, #ee11c9, #ee11c9);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--primary-color);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
     font-size: 14px;
-    color: #000
+    color: var(--text-color);
+    line-height: 1.6;
 }
 
-/* ---------- لوگو ---------- */
+/* --- Admin Logo --- */
 .admin-logo {
-    height: 36px;
-    vertical-align: middle;
-    margin-inline: 8px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    height: 40px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    transition: transform 0.3s ease;
 }
 
-/* ---------- هدر ---------- */
+.admin-logo:hover {
+    transform: scale(1.05);
+}
+
+/* --- Header --- */
 #header {
-    background: linear-gradient(135deg, #ff6a88, #ff99ac);
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-    /* نازک */
+    background: var(--secondary-color);
+    color: var(--text-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--border-color);
 }
 
-/* ---------- منوی کناری ---------- */
+/* --- Sidebar Navigation --- */
 #nav-sidebar {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(8px);
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
-    /* نازک‌تر */
+    background: var(--secondary-color);
+    border-right: 1px solid var(--border-color);
 }
 
 #nav-sidebar .nav>li>a {
-    color: #333;
+    color: var(--light-text-color);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 10px 15px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
 }
 
 #nav-sidebar .nav>li>a:hover {
-    color: #ff4d6d;
-    background: rgba(255, 200, 210, 0.4);
+    color: var(--text-color);
+    background: var(--primary-color);
+    transform: translateX(5px);
 }
 
-/* ---------- جدول‌ها ---------- */
+/* Add an icon for links to make them more visually appealing */
+#nav-sidebar .nav>li>a::before {
+    content: '→';
+    margin-right: 10px;
+    font-weight: bold;
+    color: var(--accent-color);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#nav-sidebar .nav>li>a:hover::before {
+    opacity: 1;
+}
+
+/* --- Tables --- */
+.results table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
 .results table th {
-    background: #ff6a88;
-    color: #fff;
-    border: none;
-    /* بدون بوردر ضخیم */
+    background: var(--primary-color);
+    color: var(--accent-color);
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid var(--accent-color);
 }
 
 .results table tr {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    /* خیلی نازک */
+    background: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.3s ease;
+}
+
+.results table tr:nth-child(even) {
+    background: rgba(44, 62, 80, 0.7);
 }
 
 .results table tr:hover {
-    background-color: #ffe6ec;
-    transition: background 0.3s ease;
+    background-color: var(--border-hover-color);
 }
 
-/* ---------- ماژول‌ها ---------- */
+/* --- Modules & Cards --- */
 .module {
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(6px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    /* نازک‌تر */
-    padding: 15px;
+    border-radius: 12px;
+    background: var(--secondary-color);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    margin-bottom: 25px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.module:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .module h2 {
-    border-bottom: 1px solid #ff99ac;
-    /* نازک‌تر */
-    font-size: 15px;
-    margin-bottom: 12px;
+    border-bottom: 1px solid var(--accent-color);
+    font-size: 16px;
+    color: var(--accent-color);
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    letter-spacing: 1px;
 }
 
-/* ---------- دکمه‌ها ---------- */
+/* --- Buttons & Submit Rows --- */
 .button,
 .submit-row input {
-    background: linear-gradient(135deg, #ff4d6d, #e60039);
-    color: #fff;
+    background: var(--accent-color);
+    color: var(--text-color);
     border: none;
     border-radius: 8px;
-    padding: 6px 14px;
-    transition: background 0.3s ease;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .button:hover,
 .submit-row input:hover {
-    background: linear-gradient(135deg, #ff6a88, #ff1f4d);
+    background: #2980b9;
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+    transform: translateY(-2px);
 }
 
-/* ---------- فوتر ---------- */
+/* --- Footer --- */
 #footer {
-    background: rgba(134, 24, 24, 0.5);
-    backdrop-filter: blur(10px);
-    color: #444;
-    padding: 16px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--light-text-color);
+    padding: 20px 15px;
     text-align: center;
-    font-size: 13px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    /* نازک‌تر */
+    font-size: 12px;
+    border-top: 1px solid var(--border-color);
 }
 
 #footer small {
     display: block;
     font-size: 11px;
-    color: #910909;
-    margin-top: 4px;
+    color: var(--light-text-color);
+    margin-top: 8px;
 }

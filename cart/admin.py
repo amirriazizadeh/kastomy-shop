@@ -40,21 +40,21 @@ class CartAdmin(admin.ModelAdmin):
     actions = [activate_carts, deactivate_carts, extend_expiry]
     inlines = [CartItemInline]
 
-    # فقط کسانی که پرمیشن view_cart دارند می‌بینند
-    def has_view_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.view_cart")
+    # # فقط کسانی که پرمیشن view_cart دارند می‌بینند
+    # def has_view_permission(self, request, obj=None):
+    #     return request.user.has_perm("app_name.view_cart") 
 
-    # فقط کسانی که پرمیشن add_cart دارند می‌توانند اضافه کنند
-    def has_add_permission(self, request):
-        return request.user.has_perm("app_name.add_cart")
+    # # فقط کسانی که پرمیشن add_cart دارند می‌توانند اضافه کنند
+    # def has_add_permission(self, request):
+    #     return request.user.has_perm("app_name.add_cart")
 
-    # فقط کسانی که پرمیشن change_cart دارند می‌توانند تغییر دهند
-    def has_change_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.change_cart")
+    # # فقط کسانی که پرمیشن change_cart دارند می‌توانند تغییر دهند
+    # def has_change_permission(self, request, obj=None):
+    #     return request.user.has_perm("app_name.change_cart")
 
-    # فقط کسانی که پرمیشن delete_cart دارند می‌توانند حذف کنند
-    def has_delete_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.delete_cart")
+    # # فقط کسانی که پرمیشن delete_cart دارند می‌توانند حذف کنند
+    # def has_delete_permission(self, request, obj=None):
+    #     return request.user.has_perm("app_name.delete_cart")
 
 # ////////////////////////////////////////////////////////////////////////////////
 

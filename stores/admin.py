@@ -48,13 +48,6 @@ class StoreAdmin(admin.ModelAdmin):
     search_fields = ("name", "owner__phone_number", "owner__email")
     actions = [soft_delete, restore_items, activate_items, deactivate_items]
 
-    from django.contrib import admin
-from .models import Store
-
-@admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "is_active")
-    search_fields = ("name", "owner__username")
 
     # فقط کسانی که پرمیشن view_store دارند می‌بینند
     def has_view_permission(self, request, obj=None):

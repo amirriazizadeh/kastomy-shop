@@ -52,6 +52,7 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1, verbose_name="تعداد")
     price = models.DecimalField(
         max_digits=12, decimal_places=2,
+        default=Decimal('0.00'),
         verbose_name="قیمت واحد در زمان افزودن"
     )
 
