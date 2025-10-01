@@ -1,27 +1,20 @@
-from django.test import TestCase
-from django.conf import settings
-from django.test.utils import override_settings
-from django.core.files.uploadedfile import SimpleUploadedFile
-from accounts.models import CustomUser
-from accounts.serializers import UserProfileSerializer
 
-from django.test import TestCase, override_settings
-from django.core.files.uploadedfile import SimpleUploadedFile
-from accounts.models import Address, CustomUser
-from accounts.serializers import AddressSerializer, UserProfileSerializer
-import tempfile
 import tempfile
 from io import BytesIO
 from PIL import Image
-from django.test import TestCase
-from accounts.models import Address, CustomUser
-from accounts.serializers import AddressSerializer
-import tempfile
+
 from django.test import TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+
 from accounts.models import Address, CustomUser
-from accounts.serializers import (AddressSerializer, OTPRequestSerializer, RegisterSerializer,
-                                   UserProfileSerializer, UserSerializer, VerifyOTPSerializer)
+from accounts.serializers import (
+    AddressSerializer,
+    OTPRequestSerializer,
+    RegisterSerializer,
+    UserProfileSerializer,
+    UserSerializer,
+    VerifyOTPSerializer,
+)
 
 class RegisterSerializerTest(TestCase):
     """تست‌های سریالایزر ثبت‌نام"""
