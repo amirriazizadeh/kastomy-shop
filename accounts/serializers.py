@@ -114,7 +114,6 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = "__all__"
         read_only_fields = ('id', 'user')
-
     
 
 class StoreRegistrationSerializer(serializers.ModelSerializer):
