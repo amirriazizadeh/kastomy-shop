@@ -72,3 +72,18 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['id', 'store_item_name', 'quantity', 'price', 'total_price']
+        read_only_fields = ['price', 'total_price']
+
+class AddToCartInputSerializer(serializers.Serializer):
+    """ورودی برای افزودن محصول به سبد خرید"""
+    quantity = serializers.IntegerField(
+        required=False, default=1, min_value=1,
+        help_text="تعداد محصولی که باید به سبد اضافه شود (پیش‌فرض = 1)."
+    )
+
+class ApplyDiscountInputSerializer(serializers.Serializer):
+    """ورودی برای اعمال کد تخفیف روی سبد خرید"""
+    code = serializers.CharField(
+        required=True,
+        help_text="کد تخفیف معتبر که باید روی سبد خرید اعمال شود."
+    )

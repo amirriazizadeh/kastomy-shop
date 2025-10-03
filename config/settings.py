@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     # my apps
     'accounts',
-    'adminpanel',
     'cart',
     'core',
     'orders',
@@ -189,7 +188,7 @@ from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=24*60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
+    "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 
     "ALGORITHM": "HS256",

@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
 from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPRequestSerializer,
-                           UserProfileSerializer,VerifyOTPSerializer,AddressSerializer,StoreRegistrationSerializer)
+                         UserProfileSerializer,VerifyOTPSerializer,AddressSerializer,
+                         StoreRegistrationSerializer,LogoutInputSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.views import APIView
 from .utils import generate_otp,verify_otp
@@ -17,64 +18,70 @@ from .tasks import send_otp_code_by_email
 
 User = get_user_model()
 
+
+
 class RegisterView(generics.CreateAPIView):
     """
-    This View provides an API endpoint for registering new users.
-    This class inherits from GenericAPIView to easily implement the Create operation.
+    ثبت‌نام کاربر جدید.
+
+    توضیحات:
+        - این ویو یک حساب کاربری جدید ایجاد می‌کند.  
+        - کاربر باید نام کاربری، ایمیل و رمز عبور را وارد کند.  
+        - رمز عبور باید دوبار (password, password2) وارد شود تا مطمئن شویم درست تایپ شده.  
     """
     queryset = User.objects.all()
-    permission_classes = (AllowAny,) # به همه کاربران (حتی احراز هویت نشده) اجازه دسترسی می‌دهد
+    permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
     @extend_schema(
-        summary="Register a new user account",
+        summary="ثبت‌نام کاربر جدید",
         description="""
-        Create a new user by providing a username, email, and password.
-        The password must be confirmed in the `password2` field.
+        کاربر جدید را با ارسال `username`, `email`, `password` و `password2` ایجاد می‌کند.  
+        در صورت موفقیت، اطلاعات کاربر جدید و یک پیام راهنما برمی‌گردد.  
+        در صورت خطا، پیام خطا شامل جزئیات اعتبارسنجی خواهد بود.
         """,
         request=RegisterSerializer,
         responses={
             201: RegisterSuccessSerializer,
             400: {
-                "description": "Bad Request: Occurs when validation fails (e.g., passwords don't match, username/email taken)."
+                "description": "خطا در اعتبارسنجی (مثلاً: عدم تطابق پسوردها، تکراری بودن username/email)."
             },
         },
         examples=[
             OpenApiExample(
-                'Successful Registration Example',
-                summary='A sample request to create a new user.',
-                description='Provide all required fields to register a user named "johnsnow".',
+                'نمونه ثبت‌نام موفق',
+                summary='درخواست نمونه برای ساخت کاربر',
+                description='ایجاد کاربر با نام "johnsnow"',
                 value={
                     "username": "johnsnow",
                     "email": "john.snow@example.com",
                     "password": "YouKnowNothing123!",
                     "password2": "YouKnowNothing123!"
                 },
-                request_only=True,    )
+                request_only=True
+            )
         ],
         tags=['Authentication']
     )
     def create(self, request, *args, **kwargs):
-        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
 
-        
         return Response(
             {
                 "user": serializer.data,
-                "message": "User Created Successfully. Now perform Login to get your token.",
+                "message": "کاربر با موفقیت ساخته شد. برای ورود از لاگین استفاده کنید.",
             },
             status=status.HTTP_201_CREATED
         )
 
 
+
 class RequestOTPView(APIView):
     """
-    API view to request a new OTP for an inactive user.
-    Receives a username and sends a new OTP.
+    view API برای درخواست یک رمز یکبار مصرف جدید برای یک کاربر غیرفعال.
+      یک نام کاربری دریافت کرده و یک رمز یکبار مصرف جدید ارسال می‌کند.
     """
     serializer_class = OTPRequestSerializer
 
@@ -101,7 +108,7 @@ class RequestOTPView(APIView):
 
 class VerifyOTPView(APIView):
     """
-    API view to verify OTP and activate the user account.
+    دریافت کد otp و تایید آن.
     """
     serializer_class = VerifyOTPSerializer
 
@@ -165,20 +172,45 @@ class VerifyOTPView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+
+
 class LogoutView(APIView):
+    """
+    خروج کاربر (Logout).
+
+    آدرس:
+        `/api/logout/`
+
+    توضیحات:
+        - کاربر باید **refresh token** معتبر خود را در body ارسال کند.  
+        - این توکن در blacklist قرار می‌گیرد و دیگر قابل استفاده نخواهد بود.  
+        - در صورت موفقیت، وضعیت `205 RESET CONTENT` برگردانده می‌شود.  
+    """
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        summary="خروج کاربر",
+        description="این متد refresh token کاربر را بلاک می‌کند تا دیگر قابل استفاده نباشد.",
+        request=LogoutInputSerializer,
+        responses={
+            205: None,
+            400: dict
+        }
+    )
     def post(self, request):
         try:
-            # The client should send the refresh token in the request body
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            # This can happen if the token is invalid or already blacklisted
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message":"You loged out seccessfuly..."},status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            # اگر توکن نامعتبر یا قبلاً بلاک شده باشد
+            return Response({"detail": "توکن نامعتبر یا قبلاً بلاک شده است."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):

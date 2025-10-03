@@ -1,4 +1,4 @@
-/* --- CSS Variables for Easy Customization --- */
+/* --- CSS Variables for Easy Customization ---
 :root {
     --primary-color: #2c3e50;
     --secondary-color: #34495e;
@@ -163,3 +163,5 @@ body {
     color: var(--light-text-color);
     margin-top: 8px;
 }
+
+*/
