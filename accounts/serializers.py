@@ -113,8 +113,7 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = "__all__"
-        read_only_fields = ('id', 'user')
-
+        read_only_fields = ('id', 'user','is_deleted','is_main')
     
 
 class StoreRegistrationSerializer(serializers.ModelSerializer):
@@ -171,3 +170,10 @@ class StoreRegistrationSerializer(serializers.ModelSerializer):
                 return store
         except Exception as e:
             raise serializers.ValidationError(str(e))
+
+
+class LogoutInputSerializer(serializers.Serializer):
+    """ورودی برای خروج کاربر"""
+    refresh = serializers.CharField(
+        help_text="Refresh token کاربر که باید بلاک شود."
+    )

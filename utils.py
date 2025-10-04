@@ -19,7 +19,7 @@
 
 def send_otp_code(phone_number, code):
 
-	print(f'otp code for: {phone_number} --- is:  {code}')
+	print(f'otp code for: {phone_number} --- is:  ')
 
 
 
