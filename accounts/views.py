@@ -88,15 +88,15 @@ class RequestOTPView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        phone_number = serializer.validated_data['phone_number']
+        username = serializer.validated_data['username']
         
-        user = get_object_or_404(User, phone_number=phone_number)
+        user = get_object_or_404(User, username=username)
 
-        if user.is_active:
+        if user.is_active=="active":
             return Response({"error": "This user is already active."}, status=status.HTTP_400_BAD_REQUEST)
 
-        otp = generate_otp(phone_number)
-        send_otp_code(phone_number, otp)
+        otp = generate_otp(user.phone)
+        send_otp_code(user.phone, otp)
         send_otp_code_by_email.delay(user.email,otp)
         return Response({
             "seccses":"OTP has been sent seccesfully",
@@ -107,32 +107,30 @@ class RequestOTPView(APIView):
 
 
 class VerifyOTPView(APIView):
-    """
-    دریافت کد otp و تایید آن.
-    """
+    
     serializer_class = VerifyOTPSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        phone_number = serializer.validated_data['phone_number']
-        otp_entered = serializer.validated_data['otp']
+        username = serializer.validated_data['username']
+        otp_entered = serializer.validated_data['password']
         
-        user = get_object_or_404(User, phone_number=phone_number)
+        user = get_object_or_404(User, username=username)
         
-        if user.is_active:
+        if user.is_active=="active":
             return Response({"error": "This account is already active."}, status=status.HTTP_400_BAD_REQUEST)
         
                 
         # Retrieve OTP from cache
-        is_verified = verify_otp(phone_number,otp_entered)
+        is_verified = verify_otp(user.phone,otp_entered)
 
         if not is_verified:
             return Response({"error": "OTP is not valid."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Activate user and clear OTP
-        user.is_active = True
+        user.is_active = "True"
         user.save()
 
         refresh = RefreshToken.for_user(user)
@@ -164,9 +162,9 @@ class VerifyOTPView(APIView):
                 "email":user.email,
                 "first_name":user.first_name,
                 "last_name":user.last_name,
-                "phone":user.phone_number,
+                "phone":user.phone,
                 "is_seller":user.is_seller,
-                "picture":user.profile_picture or "no picture",
+                "picture":user.picture or "no picture",
                 "address":addresses_list
             }
         }, status=status.HTTP_200_OK)

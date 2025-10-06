@@ -73,9 +73,9 @@ def make_customers(modeladmin, request, queryset):
 # --- ثبت مدل در ادمین ---
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ("phone_number", "email", "role", "is_active", "is_seller")
-    list_filter = ("role", "is_active", "is_seller")
-    search_fields = ("phone_number", "email", "first_name", "last_name")
+    list_display = ("phone", "email","is_seller")
+    list_filter = ( "is_seller",)
+    search_fields = ("phone", "email", "first_name", "last_name")
     actions = [activate_users, deactivate_users, make_sellers, make_customers]
 
 

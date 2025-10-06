@@ -76,14 +76,14 @@ class OTPRequestSerializer(serializers.Serializer):
     """
     Serializer for requesting an OTP. Just needs the phone number.
     """
-    phone_number = serializers.CharField(max_length=15)
+    username = serializers.CharField(max_length=15)
 
 class VerifyOTPSerializer(serializers.Serializer):
     """
     Serializer for verifying the OTP code.
     """
-    phone_number = serializers.CharField(max_length=15)
-    otp = serializers.CharField(max_length=6, write_only=True)
+    username = serializers.CharField(max_length=15)
+    password = serializers.CharField(max_length=6, write_only=True)
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
