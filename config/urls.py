@@ -12,7 +12,7 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('api/myuser/',include('accounts.urls_myuser')),
     #product
-    path('api/product/',include('products.urls')),
+    # path('api/products/',include('products.urls')),
     path('api/categories/',include('products.urls_categories')),
     # cart
     path('api/mycart/', include('cart.urls')),

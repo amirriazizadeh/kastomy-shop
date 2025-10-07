@@ -1,64 +1,132 @@
 from django.db import models
 from core.models import BaseModel
+from django.utils.text import slugify
+from django.conf import settings
 
+User = settings.AUTH_USER_MODEL
 
-from django.db import models
-from core.models import BaseModel
 
 class Category(BaseModel):
-    
-    name = models.CharField(unique=True,max_length=200, verbose_name="نام دسته‌بندی")
-    slug = models.SlugField(max_length=250, unique=True, allow_unicode=True, verbose_name="اسلاگ")
+    name = models.CharField(max_length=100, verbose_name="نام دسته‌بندی")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
+    image = models.ImageField(upload_to='categories/', blank=True, null=True, verbose_name="تصویر")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+
     parent = models.ForeignKey(
         'self',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name='children',
-        verbose_name="دسته‌بندی والد"
+        blank=True,
+        null=True,
+        verbose_name="دسته والد"
     )
-    is_sub = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "دسته‌بندی"
         verbose_name_plural = "دسته‌بندی‌ها"
-        permissions = [
-            ("can_activate_category", "Can activate/deactivate category"),   # فعال یا غیرفعال کردن دسته
-            ("can_manage_subcategories", "Can manage subcategories"),       # مدیریت زیر دسته‌ها
-            ("can_assign_products", "Can assign products to category"),     # انتساب محصولات به دسته
-        ]
+        ordering = ['name']
 
     def __str__(self):
         return self.name
+
+
+
+
+
 
 
 class Product(BaseModel):
-    
     name = models.CharField(max_length=255, verbose_name="نام محصول")
     slug = models.SlugField(max_length=255, unique=True, allow_unicode=True, db_index=True, verbose_name="اسلاگ")
     description = models.TextField(verbose_name="توضیحات")
-    category = models.ManyToManyField(
+
+    category = models.ForeignKey(
         Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='products',
         verbose_name="دسته‌بندی"
     )
-    cover_image = models.ImageField(upload_to='product_covers/', verbose_name="تصویر کاور")
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
-    rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, verbose_name="امتیاز")
+
+    best_seller = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='best_seller_products',
+        limit_choices_to={'role': 'SELLER'},
+        verbose_name="فروشنده برتر"
+    )
+
+    cover_image = models.ImageField(
+        upload_to='product_covers/',
+        null=True,
+        blank=True,
+        verbose_name="تصویر کاور"
+    )
+
+    stock = models.PositiveIntegerField(
+        default=0,
+        verbose_name="موجودی انبار"
+    )
+
+    best_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="بهترین قیمت"
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="فعال"
+    )
+
+    rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="امتیاز"
+    )
 
     class Meta:
-        verbose_name = "محصول (قالب)"
-        verbose_name_plural = "محصولات (قالب‌ها)"
+        verbose_name = "محصول"
+        verbose_name_plural = "محصولات"
         ordering = ['name']
-        permissions = [
-            ("can_publish_product", "Can publish/unpublish product"),    # فعال یا غیرفعال کردن محصول
-            ("can_feature_product", "Can mark product as featured"),     # ویژه کردن محصول
-            ("can_rate_product", "Can rate product"),                    # اجازه دادن امتیاز (مثلا برای کاربر خاص یا ادمین)
-            ("can_manage_product_images", "Can manage product images"),  # مدیریت گالری تصاویر محصول
-        ]
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name, allow_unicode=True)
+        super().save(*args, **kwargs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class ProductImage(BaseModel):
     

@@ -25,33 +25,11 @@ def restore_items(modeladmin, request, queryset):
 # -------------------------
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "parent", "is_sub", "is_deleted", "created_at")
-    list_filter = ("is_sub", "is_deleted")
+    list_display = ("name", "parent", )
+    list_filter = ("name", )
     search_fields = ("name", "slug")
     actions = [soft_delete, restore_items]
 
-    # فقط کسانی که پرمیشن view_category دارند می‌بینند
-    def has_view_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.view_category")
-
-    # فقط کسانی که پرمیشن add_category دارند می‌توانند اضافه کنند
-    def has_add_permission(self, request):
-        return request.user.has_perm("app_name.add_category")
-
-    # فقط کسانی که پرمیشن change_category دارند می‌توانند تغییر دهند
-    def has_change_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.change_category")
-
-    # فقط کسانی که پرمیشن delete_category دارند می‌توانند حذف کنند
-    def has_delete_permission(self, request, obj=None):
-        return request.user.has_perm("app_name.delete_category")
-
-    # فیلد is_active را فقط کسانی که can_activate_category دارند بتوانند تغییر دهند
-    def get_readonly_fields(self, request, obj=None):
-        readonly = list(super().get_readonly_fields(request, obj))
-        if not request.user.has_perm("app_name.can_activate_category"):
-            readonly.append("is_active")  # این فیلد فقط خواندنی می‌شود
-        return readonly
 
     # برای زیر دسته‌ها هم می‌توانیم محدودیت بگذاریم
     def get_queryset(self, request):

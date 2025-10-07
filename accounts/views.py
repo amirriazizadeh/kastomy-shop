@@ -15,6 +15,7 @@ from rest_framework import viewsets
 from stores.models import Store
 from rest_framework_simplejwt.tokens import RefreshToken
 from .tasks import send_otp_code_by_email
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 User = get_user_model()
 
@@ -200,10 +201,8 @@ class LogoutView(APIView):
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
             token.blacklist()
-
             return Response({"message":"You loged out seccessfuly..."},status=status.HTTP_205_RESET_CONTENT)
         except Exception:
-            # اگر توکن نامعتبر یا قبلاً بلاک شده باشد
             return Response({"detail": "توکن نامعتبر یا قبلاً بلاک شده است."},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -211,20 +210,30 @@ class LogoutView(APIView):
 
 
 
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    """
-    Manage the authenticated user's profile.
-    Supports GET, PUT, PATCH, DELETE.
-    """
-    serializer_class = UserProfileSerializer
+class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    def get_object(self):
-        """
-        Retrieve and return the authenticated user.
-        """
-        return self.request.user
-    
+    def get(self, request, *args, **kwargs):
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, *args, **kwargs):
+        serializer = UserProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True  
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
 
 
 

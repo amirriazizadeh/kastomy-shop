@@ -4,47 +4,10 @@ from .models import (
     Attribute, AttributeValue, ProductVariant
 )
 
+from rest_framework import serializers
+from .models import Product, ProductImage, Category
+from accounts.models import CustomUser  # فروشنده
 
-class RecursiveField(serializers.Serializer):
-    
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-class CategorySerializer(serializers.ModelSerializer):
-    
-    children = RecursiveField(many=True, read_only=True)
-
-    class Meta:
-        model = Category
-        fields = [
-            'id',
-            'name',
-            'slug',
-            'parent', 
-            'children' 
-        ]
-
-
-class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = Category
-        fields = [
-            'name',
-            'slug',
-            'parent',
-        ]
-    
-    def validate_parent(self, value):
-        if self.instance and value == self.instance:
-            raise serializers.ValidationError("یک دسته‌بندی نمی‌تواند والد خودش باشد.")
-        return value
-
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['image', 'alt_text']
 
 
 class AttributeSerializer(serializers.ModelSerializer):
@@ -69,32 +32,119 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'attributes']
 
 
-class ProductSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(many=True, read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
-    variants = ProductVariantSerializer(many=True, read_only=True)
+
+# -------------------------------
+# 🔸 ProductImage Serializer
+# -------------------------------
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
+
+
+# -------------------------------
+# 🔸 Seller Serializer (نمایش فروشنده)
+# -------------------------------
+class SellerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'first_name', 'last_name', 'phone', 'email']
+        read_only_fields = fields
+
+
+
+
+# -------------------------------
+# 🔸 Category Serializer 
+# -------------------------------
+
+class CategorySimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name']
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    children = CategorySimpleSerializer(many=True, read_only=True)
+    parents = serializers.SerializerMethodField()
 
     class Meta:
-        model = Product
+        model = Category
         fields = [
-            'id', 'name', 'slug', 'description', 'cover_image',
-            'is_active', 'rating', 'category', 'images', 'variants'
+            'id', 'image', 'name', 'description',
+            'is_active', 'parent', 'children', 'parents'
         ]
 
-class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    category = serializers.PrimaryKeyRelatedField(
+    def get_parents(self, obj):
+        """بازگرداندن لیست والدها تا بالاترین سطح"""
+        parents = []
+        current = obj.parent
+        while current:
+            parents.insert(0, current)  # از بالا به پایین مرتب کنیم
+            current = current.parent
+        return CategorySimpleSerializer(parents, many=True).data
+
+
+
+
+
+# -------------------------------
+# 🔸 Product Serializer اصلی
+# -------------------------------
+class ProductSerializer(serializers.ModelSerializer):
+    category = CategorySimpleSerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
-        many=True,
-        allow_empty=False 
+        source='category',
+        write_only=True
     )
 
+    best_seller = SellerSerializer(read_only=True)
+    best_seller_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),  # ✅ بدون فیلتر role
+        source='best_seller',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    images = ProductImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Product
         fields = [
+            'id',
             'name',
-            'slug',
             'description',
-            'cover_image',
+            'rating',
+            'stock',
+            'best_seller',
+            'best_seller_id',
+            'best_price',
+            'category',
+            'category_id',
+            'images',
             'is_active',
-            'category' 
         ]
+
+    def create(self, validated_data):
+        """
+        ساخت محصول جدید + آپلود چند تصویر در صورت ارسال
+        """
+        images_data = self.context['request'].FILES.getlist('images')
+        product = super().create(validated_data)
+        for img in images_data:
+            ProductImage.objects.create(product=product, image=img)
+        return product
+
+    def update(self, instance, validated_data):
+        """
+        آپدیت محصول + تعویض تصاویر (در صورت ارسال جدید)
+        """
+        images_data = self.context['request'].FILES.getlist('images')
+        instance = super().update(instance, validated_data)
+        if images_data:
+            instance.images_list.all().delete()
+            for img in images_data:
+                ProductImage.objects.create(product=instance, image=img)
+        return instance

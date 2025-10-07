@@ -54,14 +54,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """
-    سریالایزر برای نمایش اطلاعات کاربر.
-    در پاسخ ثبت‌نام موفق استفاده می‌شود.
-    """
     class Meta:
         model = User
         # فیلدهای بیشتری برای نمایش اطلاعات کامل‌تر کاربر اضافه شد
-        fields = ('id', 'phone_number', 'email', 'role')
+        fields = ('id', 'phone', 'email', )
 
 
 class RegisterSuccessSerializer(serializers.Serializer):
@@ -85,35 +81,57 @@ class VerifyOTPSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=15)
     password = serializers.CharField(max_length=6, write_only=True)
 
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    """Serializer for user's addresses."""
+    class Meta:
+        model = Address
+        fields = [
+            'id', 'label', 'address_line_1', 'address_line_2',
+            'city', 'state', 'postal_code', 'country',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for viewing and updating the authenticated user's profile.
     """
-    profile_picture = serializers.ImageField(required=False, allow_null=True, use_url=True)
+    picture = serializers.ImageField(required=False, allow_null=True, use_url=True)
+    addresses = AddressSerializer(many=True, read_only=True)
 
     class Meta:
         model = CustomUser
         fields = [
-            'phone_number', 'first_name', 'last_name', 'email',
-            'role', 'is_active', 'is_staff', 'profile_picture',
+            'username',
+            'status',
+            'email',
+            'first_name',
+            'last_name',
+            'phone',
+            'is_seller',
+            'picture',
+            'addresses',
         ]
-        read_only_fields = ('phone_number', 'role', 'is_active', 'is_staff')
+        read_only_fields = ['username', 'phone', 'status']
+        extra_kwargs = {
+            'email': {'required': False},
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+        }
 
     def validate(self, attrs):
-        # self.instance is the object being updated. It is None on create.
-        # self.initial_data is the raw incoming data from the request.
-        if self.instance and 'phone_number' in self.initial_data:
-            raise serializers.ValidationError({'phone_number': 'شماره تلفن قابل تغییر نیست.'})
+        if self.instance:
+            if 'phone' in attrs and attrs['phone'] != self.instance.phone:
+                raise serializers.ValidationError({'phone': 'شماره تلفن قابل تغییر نیست.'})
+
+            if 'email' in attrs and attrs['email'] != self.instance.email:
+                raise serializers.ValidationError({'email': ' ایمیل قابل تغییر نیست.'})
+
         return attrs
-    
-class AddressSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Address object
-    """
-    class Meta:
-        model = Address
-        fields = "__all__"
-        read_only_fields = ('id', 'user','is_deleted','is_main')
+
     
 
 class StoreRegistrationSerializer(serializers.ModelSerializer):
