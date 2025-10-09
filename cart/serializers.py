@@ -2,8 +2,6 @@ from rest_framework import serializers
 from .models import CartItem,Cart
 
 
-
-
 class CartItemSerializer(serializers.ModelSerializer):
     store_item_name = serializers.CharField(
         source='store_item.variant.product.name', read_only=True
@@ -15,7 +13,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'store_item_name', 'price', 'total_price']
 
     def validate(self, attrs):
-        # جلوگیری از تغییر فیلدهای read-only توسط کاربر
         if 'price' in self.initial_data or 'total_price' in self.initial_data:
             raise serializers.ValidationError(
                 "این آیتم قابل تغییر نیست. فقط تعداد قابل ویرایش است."
@@ -23,7 +20,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def validate_quantity(self, value):
-        # بررسی موجودی انبار
         store_item = self.instance.store_item if self.instance else self.context.get('store_item')
         if value > store_item.stock_quantity:
             raise serializers.ValidationError("موجودی کافی نیست.")
@@ -32,7 +28,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        # فقط quantity رو آپدیت کن و قیمت واقعی را از store_item بگیر
         instance.quantity = validated_data.get('quantity', instance.quantity)
         instance.price = instance.store_item.price
         instance.save()
@@ -45,7 +40,7 @@ class CartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart
-        fields = ['id', 'total_price', 'items']
+        fields = ['items', 'total_price', 'total_discount']
 
 
 

@@ -61,7 +61,7 @@ class SellerSerializer(serializers.ModelSerializer):
 class CategorySimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name']
+        fields = ['id', 'name','parent']
 
 
 class CategorySerializer(serializers.ModelSerializer):

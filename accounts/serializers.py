@@ -74,6 +74,8 @@ class OTPRequestSerializer(serializers.Serializer):
     """
     username = serializers.CharField(max_length=15)
 
+
+
 class VerifyOTPSerializer(serializers.Serializer):
     """
     Serializer for verifying the OTP code.

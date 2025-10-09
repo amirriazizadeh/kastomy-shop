@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-
 from .models import Cart, CartItem, StoreItem
 from .serializers import (AddToCartSerializer, CartItemSerializer,
                 CartSerializer,AddToCartInputSerializer,ApplyDiscountInputSerializer)
@@ -13,19 +12,7 @@ from drf_spectacular.utils import extend_schema
 
 
 
-
-
 class CartView(APIView):
-    """
-    مدیریت سبد خرید کاربر جاری.
-
-    آدرس: 
-        `/api/mycart/`
-
-    توضیحات:
-        - **GET**: دریافت تمام آیتم‌های موجود در سبد خرید کاربر.  
-        - **POST**: اعمال کد تخفیف روی مبلغ کل سبد خرید.  
-    """
     permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
@@ -36,13 +23,9 @@ class CartView(APIView):
         }
     )
     def get(self, request):
-        cart = Cart.objects.filter(
-            user=request.user,
-            is_active=True,
-            expires_at__gt=timezone.now()
-        ).first()
+        cart = Cart.objects.filter(user=request.user,is_active=True,expires_at__gt=timezone.now()).first()
         if not cart:
-            return Response({"message": "Your cart is empty."}, status=status.HTTP_200_OK)
+            return Response({"items":[],'total_price':00.00,'total_discount':00.00}, status=status.HTTP_200_OK)
         return Response(CartSerializer(cart).data)
 
     @extend_schema(

@@ -3,6 +3,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import get_user_model
+
+from accounts.models import Address
 from .serializers import (RegisterSerializer,RegisterSuccessSerializer,OTPRequestSerializer,
                          UserProfileSerializer,VerifyOTPSerializer,AddressSerializer,
                          StoreRegistrationSerializer,LogoutInputSerializer)
@@ -235,35 +237,27 @@ class UserProfileView(APIView):
 
 
 
-
-
-
 class AddressViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing user addresses with logical delete.
-    """
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        """
-        Return all addresses for the current user that are not deleted.
-        """
-        return self.request.user.addresses.filter(is_deleted=False)
+        return Address.objects.filter(user=self.request.user, is_deleted=False)
 
-    def perform_create(self, serializer):
-        """
-        Assign the current user to the address when creating a new one.
-        """
-        serializer.save(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer.errors)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
-        """
-        Perform a soft delete instead of a hard delete.
-        """
         instance = self.get_object()
-        instance.delete()  # Calls BaseModel.delete -> sets is_deleted=True
-        return Response({"message":"deleted address seccesfully"},status=status.HTTP_204_NO_CONTENT)
+        instance.is_deleted = True
+        instance.save()
+        return Response({"message": "Address deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
 
 
 

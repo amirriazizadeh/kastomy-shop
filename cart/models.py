@@ -9,11 +9,7 @@ class Cart(models.Model):
     class Meta:
         verbose_name = "سبد خرید"
         verbose_name_plural = "سبدهای خرید"
-        permissions = [
-            ("can_checkout_cart", "Can checkout cart"),     # اجازه نهایی‌کردن سبد خرید
-            ("can_clear_cart", "Can clear cart"),           # اجازه خالی کردن کل سبد
-            ("can_extend_cart", "Can extend cart expiry"),  # اجازه تمدید تاریخ انقضا
-        ]
+        
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -21,21 +17,37 @@ class Cart(models.Model):
         verbose_name="کاربر"
     )
     total_price = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قیمت کل"
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('0.00'), 
+        verbose_name="قیمت کل"
+    )
+    total_discount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('0.00'), 
+        verbose_name="تخفیف کل"
     )
     is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # تنظیم تاریخ انقضا هنگام ساخت
         if not self.pk and not self.expires_at:
             self.expires_at = timezone.now() + timedelta(days=3)
         super().save(*args, **kwargs)
 
     def update_total(self):
-        self.total_price = sum(item.total_price for item in self.items.all())
-        self.save(update_fields=['total_price'])
+        items = self.items.all()
+        self.total_price = sum(item.total_price for item in items)
+        self.total_discount = sum(
+            getattr(item, 'discount_amount', Decimal('0.00')) 
+            for item in items
+        )
+        self.save(update_fields=['total_price', 'total_discount'])
+
+    def get_final_price(self):
+        return self.total_price - self.total_discount
 
     def __str__(self):
         return f"سبد خرید {self.user}"

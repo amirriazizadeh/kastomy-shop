@@ -42,7 +42,7 @@ class Product(BaseModel):
 
     category = models.ForeignKey(
         Category,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='products',
@@ -55,7 +55,6 @@ class Product(BaseModel):
         null=True,
         blank=True,
         related_name='best_seller_products',
-        limit_choices_to={'role': 'SELLER'},
         verbose_name="فروشنده برتر"
     )
 
