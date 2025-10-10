@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from core.models import BaseModel
-from products.models import ProductVariant
+# from products.models import ProductVariant
 from accounts.models import Address
 
 class Store(BaseModel):
@@ -33,7 +33,7 @@ class Store(BaseModel):
 class StoreItem(BaseModel):
     
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='store_items', verbose_name="فروشگاه")
-    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='store_items', verbose_name="تنوع محصول")
+    variant = models.ForeignKey('products.ProductVariant', on_delete=models.CASCADE, related_name='store_items', verbose_name="تنوع محصول")
     price = models.DecimalField(max_digits=12, decimal_places=2,null=False,blank=False, verbose_name="قیمت")
     stock_quantity = models.PositiveIntegerField(default=0, verbose_name="موجودی انبار")
     sku = models.CharField(max_length=100, blank=True, help_text="شناسه انبارداری مختص این فروشگاه", verbose_name="SKU")

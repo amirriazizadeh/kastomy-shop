@@ -3,11 +3,10 @@ from .models import (
     Product, Category, ProductImage, 
     Attribute, AttributeValue, ProductVariant
 )
-
 from rest_framework import serializers
 from .models import Product, ProductImage, Category
-from accounts.models import CustomUser  # فروشنده
-
+from accounts.models import CustomUser  
+from stores.models import Store
 
 
 class AttributeSerializer(serializers.ModelSerializer):
@@ -16,9 +15,7 @@ class AttributeSerializer(serializers.ModelSerializer):
         fields = ['name']
 
 class AttributeValueSerializer(serializers.ModelSerializer):
-    # To show the attribute name like "Color" instead of just its ID
     attribute = AttributeSerializer(read_only=True)
-
     class Meta:
         model = AttributeValue
         fields = ['attribute', 'value']
@@ -26,7 +23,6 @@ class AttributeValueSerializer(serializers.ModelSerializer):
 class ProductVariantSerializer(serializers.ModelSerializer):
     attributes = AttributeValueSerializer(many=True, read_only=True)
     name = serializers.CharField(read_only=True)
-
     class Meta:
         model = ProductVariant
         fields = ['id', 'name', 'attributes']
@@ -42,14 +38,13 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image']
 
 
-# -------------------------------
-# 🔸 Seller Serializer (نمایش فروشنده)
-# -------------------------------
+
+
 class SellerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CustomUser
-        fields = ['id', 'first_name', 'last_name', 'phone', 'email']
-        read_only_fields = fields
+        model = Store
+        fields = ['id', ]
+
 
 
 
@@ -76,7 +71,6 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
 
     def get_parents(self, obj):
-        """بازگرداندن لیست والدها تا بالاترین سطح"""
         parents = []
         current = obj.parent
         while current:
@@ -86,11 +80,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 
-
-
-# -------------------------------
-# 🔸 Product Serializer اصلی
-# -------------------------------
+# -------------------------
+# 🔸 Product Serializer
+# -------------------------
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySimpleSerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
@@ -101,7 +93,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     best_seller = SellerSerializer(read_only=True)
     best_seller_id = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(),  # ✅ بدون فیلتر role
+        queryset=CustomUser.objects.all(),
         source='best_seller',
         write_only=True,
         required=False,
@@ -128,9 +120,6 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        """
-        ساخت محصول جدید + آپلود چند تصویر در صورت ارسال
-        """
         images_data = self.context['request'].FILES.getlist('images')
         product = super().create(validated_data)
         for img in images_data:
@@ -138,9 +127,6 @@ class ProductSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
-        """
-        آپدیت محصول + تعویض تصاویر (در صورت ارسال جدید)
-        """
         images_data = self.context['request'].FILES.getlist('images')
         instance = super().update(instance, validated_data)
         if images_data:
@@ -148,3 +134,29 @@ class ProductSerializer(serializers.ModelSerializer):
             for img in images_data:
                 ProductImage.objects.create(product=instance, image=img)
         return instance
+
+
+
+
+class ProductDetailsSerializer(serializers.ModelSerializer):
+    best_seller = SellerSerializer()
+    category = CategorySerializer()
+    images = ProductImageSerializer(many=True)
+    sellers = SellerSerializer(many=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'best_seller',
+            'name',
+            'description',
+            'stock',
+            'rating',
+            'best_price',
+            'created_at',
+            'category',
+            'images',
+            'sellers',
+            'is_active',
+        ]

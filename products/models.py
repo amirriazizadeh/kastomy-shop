@@ -2,7 +2,7 @@ from django.db import models
 from core.models import BaseModel
 from django.utils.text import slugify
 from django.conf import settings
-
+from stores.models import Store
 User = settings.AUTH_USER_MODEL
 
 
@@ -31,17 +31,23 @@ class Category(BaseModel):
 
 
 
+# class Seller(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE)
+#     shop_name = models.CharField(max_length=255)
+#     rating = models.FloatField(null=True, blank=True)
+
+#     def __str__(self):
+#         return self.shop_name
 
 
 
-
-class Product(BaseModel):
+class Product(models.Model):
     name = models.CharField(max_length=255, verbose_name="نام محصول")
     slug = models.SlugField(max_length=255, unique=True, allow_unicode=True, db_index=True, verbose_name="اسلاگ")
     description = models.TextField(verbose_name="توضیحات")
 
     category = models.ForeignKey(
-        Category,
+        'Category',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -49,13 +55,22 @@ class Product(BaseModel):
         verbose_name="دسته‌بندی"
     )
 
+
     best_seller = models.ForeignKey(
-        User,
+        'stores.Store',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='best_seller_products',
         verbose_name="فروشنده برتر"
+    )
+
+    
+    sellers = models.ManyToManyField(
+        'stores.Store',
+        related_name='selling_products',
+        blank=True,
+        verbose_name="فروشندگان"
     )
 
     cover_image = models.ImageField(
@@ -91,6 +106,11 @@ class Product(BaseModel):
         verbose_name="امتیاز"
     )
 
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاریخ ایجاد"
+    )
+
     class Meta:
         verbose_name = "محصول"
         verbose_name_plural = "محصولات"
@@ -103,7 +123,6 @@ class Product(BaseModel):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
         super().save(*args, **kwargs)
-
 
 
 

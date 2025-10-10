@@ -8,8 +8,12 @@ from .models import (
 
 
 admin.site.register(Product)
+admin.site.register(ProductVariant)
+admin.site.register(Attribute)
+admin.site.register(AttributeValue)
 admin.site.register(ProductImage)
 admin.site.register(Category)
+
 
 # # -------------------------
 # # اکشن‌های عمومی برای Logical Delete
