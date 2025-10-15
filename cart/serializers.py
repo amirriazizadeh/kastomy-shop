@@ -1,46 +1,56 @@
 from rest_framework import serializers
 from .models import CartItem,Cart
+from products.serializers import ProductSerializer
 
+from products.models import Product
+from stores.models import Store,StoreItem
+
+
+
+class StoreInCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        exclude = ['address']
+
+class StoreItemInCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreItem
+        fields = ['id', 'price', 'discount_price', 'stock', 'store']
 
 class CartItemSerializer(serializers.ModelSerializer):
-    store_item_name = serializers.CharField(
-        source='store_item.variant.product.name', read_only=True
-    )
-
+    product = serializers.SerializerMethodField()
+    store = serializers.SerializerMethodField()
+    store_item = StoreItemInCartSerializer(read_only=True)
+    
     class Meta:
         model = CartItem
-        fields = ['id', 'store_item_name', 'quantity', 'price', 'total_price']
-        read_only_fields = ['id', 'store_item_name', 'price', 'total_price']
-
-    def validate(self, attrs):
-        if 'price' in self.initial_data or 'total_price' in self.initial_data:
-            raise serializers.ValidationError(
-                "این آیتم قابل تغییر نیست. فقط تعداد قابل ویرایش است."
-            )
-        return super().validate(attrs)
-
-    def validate_quantity(self, value):
-        store_item = self.instance.store_item if self.instance else self.context.get('store_item')
-        if value > store_item.stock_quantity:
-            raise serializers.ValidationError("موجودی کافی نیست.")
-        if value < 1:
-            raise serializers.ValidationError("تعداد باید حداقل ۱ باشد.")
-        return value
-
-    def update(self, instance, validated_data):
-        instance.quantity = validated_data.get('quantity', instance.quantity)
-        instance.price = instance.store_item.price
-        instance.save()
-        return instance
+        fields = [
+            'id', 'product', 'quantity', 'store', 
+            'total_item_price', 'total_discount', 
+            'total_price', 'unit_price', 'store_item'
+        ]
+    
+    def get_product(self, obj):
+        return ProductSerializer(obj.store_item.product).data
+    
+    def get_store(self, obj):
+        return StoreInCartSerializer(obj.store_item.store).data
 
 
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
-
+    
     class Meta:
         model = Cart
         fields = ['items', 'total_price', 'total_discount']
+    
+    def to_representation(self, instance):
+        """اطمینان از اینکه همیشه items وجود داره"""
+        data = super().to_representation(instance)
+        if data.get('items') is None:
+            data['items'] = []
+        return data
 
 
 

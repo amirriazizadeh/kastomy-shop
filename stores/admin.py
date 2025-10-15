@@ -95,7 +95,7 @@ class StoreAdmin(admin.ModelAdmin):
 # -------------------------
 @admin.register(StoreItem)
 class StoreItemAdmin(admin.ModelAdmin):
-    list_display = ("store", "variant", "price", "stock_quantity", "is_active", "is_deleted", "created_at")
+    list_display = ("store", "variant", "price", "stock", "is_active", "is_deleted", "created_at")
     list_filter = ("is_active", "is_deleted", "store")
     search_fields = ("store__name", "variant__product__name", "sku")
     actions = [soft_delete, restore_items, activate_items, deactivate_items]
@@ -124,7 +124,7 @@ class StoreItemAdmin(admin.ModelAdmin):
             readonly.append("price")
 
         if not request.user.has_perm("app_name.can_edit_stock"):
-            readonly.append("stock_quantity")
+            readonly.append("stock")
 
         if not request.user.has_perm("app_name.can_manage_sku"):
             readonly.append("sku")

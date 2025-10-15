@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from stores.models import StoreItem
+from products.models import Product
 
 class Cart(models.Model):
     class Meta:
@@ -52,36 +53,51 @@ class Cart(models.Model):
     def __str__(self):
         return f"سبد خرید {self.user}"
 
+
 class CartItem(models.Model):
-    cart = models.ForeignKey(
-        Cart, on_delete=models.CASCADE,
-        related_name='items',
-        verbose_name="سبد خرید")
-    store_item = models.ForeignKey(
-        StoreItem, on_delete=models.CASCADE,
-        related_name='cart_items', verbose_name="آیتم فروشگاه"
-    )
-    quantity = models.PositiveIntegerField(default=1, verbose_name="تعداد")
-    price = models.DecimalField(
-        max_digits=12, decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name="قیمت واحد در زمان افزودن"
-    )
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    store_item = models.ForeignKey(StoreItem, on_delete=models.CASCADE, related_name='cart_items')
+    quantity = models.PositiveIntegerField(default=1)
+
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total_item_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "آیتم سبد خرید"
-        verbose_name_plural = "آیتم‌های سبد خرید"
-        permissions = [
-            ("can_view_own_cartitems", "Can view own cart items"),         # دیدن آیتم‌های سبد خودش
-            ("can_change_own_cartitems", "Can change own cart items"),     # تغییر آیتم‌های سبد خودش
-            ("can_delete_own_cartitems", "Can delete own cart items"),     # حذف آیتم‌های سبد خودش
-            ("can_apply_discount_item", "Can apply discount to cart item") # اجازه اعمال تخفیف روی آیتم
+        unique_together = ['cart', 'store_item']
+        indexes = [
+            models.Index(fields=['cart', 'store_item']),
         ]
-    
 
     def __str__(self):
-        return f"{self.quantity} عدد از {self.store_item.variant.product.name}"
+        return f"{self.store_item.variant} x {self.quantity}"
 
     @property
-    def total_price(self):
-        return self.quantity * self.price
+    def product(self):
+        return self.store_item.variant
+
+    @property
+    def store(self):
+        return self.store_item.store
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        
+        if self.quantity > self.store_item.stock:
+            raise ValidationError(f"موجودی کافی نیست. موجودی فعلی: {self.store_item.stock}")
+
+    def save(self, *args, **kwargs):
+        
+        base_price = self.store_item.price
+        discount_price = 0
+        
+        self.unit_price = discount_price
+        self.total_item_price = base_price * self.quantity
+        self.total_discount = (base_price - discount_price) * self.quantity
+        self.total_price = discount_price * self.quantity
+        
+        super().save(*args, **kwargs)

@@ -14,47 +14,37 @@ from drf_spectacular.utils import extend_schema
 
 class CartView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
-    @extend_schema(
-        summary="نمایش سبد خرید",
-        description="این متد تمام آیتم‌های موجود در سبد خرید فعال کاربر را برمی‌گرداند.",
-        responses={
-            200: CartSerializer,
-        }
-    )
+    
     def get(self, request):
-        cart = Cart.objects.filter(user=request.user,is_active=True,expires_at__gt=timezone.now()).first()
-        if not cart:
-            return Response({"items":[],'total_price':00.00,'total_discount':00.00}, status=status.HTTP_200_OK)
-        return Response(CartSerializer(cart).data)
-
-    @extend_schema(
-        summary="اعمال کد تخفیف",
-        description="این متد یک کد تخفیف معتبر را روی سبد خرید کاربر اعمال می‌کند و مبلغ کل سبد را به‌روزرسانی می‌نماید.",
-        request=ApplyDiscountInputSerializer,
-        responses={
-            200: dict,
-            400: dict,
-        }
-    )
+        cart, created = Cart.objects.prefetch_related(
+            'items__store_item__product__images',
+            'items__store_item__store'
+        ).get_or_create(user=request.user)
+        
+        serializer = CartSerializer(cart)
+        data = serializer.data
+        
+        if 'items' not in data or data['items'] is None:
+            data['items'] = []
+        
+        return Response(data)
+    
+    
     def post(self, request):
         code = request.data.get('code')
         if not code:
             return Response({"message": "No discount applied."}, status=status.HTTP_200_OK)
 
-        # پیدا کردن کد تخفیف
         try:
             discount = Discount.objects.get(code=code, expire_at__gt=timezone.now())
         except Discount.DoesNotExist:
             return Response({"error": "کد تخفیف معتبر نیست یا منقضی شده."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # بررسی استفاده قبلی
         if DiscountUsage.objects.filter(discount=discount, user=request.user).exists():
             return Response({"error": "شما قبلاً از این کد تخفیف استفاده کرده‌اید."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # پیدا کردن سبد خرید فعال
         cart = Cart.objects.filter(
             user=request.user,
             is_active=True,
@@ -63,11 +53,9 @@ class CartView(APIView):
         if not cart:
             return Response({"message": "Your cart is empty."}, status=status.HTTP_200_OK)
 
-        # اعمال تخفیف
         cart.total_price = cart.total_price * (Decimal('1') - (Decimal(discount.percent) / Decimal('100')))
         cart.save()
 
-        # ذخیره استفاده از تخفیف
         DiscountUsage.objects.create(discount=discount, user=request.user)
 
         return Response(
