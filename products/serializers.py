@@ -4,7 +4,7 @@ from .models import (
     Attribute, AttributeValue, ProductVariant
 )
 from rest_framework import serializers
-from .models import Product, ProductImage, Category
+from .models import Product, ProductImage, Category,Review
 from accounts.models import CustomUser  
 from stores.models import Store
 
@@ -160,3 +160,26 @@ class ProductDetailsSerializer(serializers.ModelSerializer):
             'sellers',
             'is_active',
         ]
+
+
+
+class ReviewUserSerializer(serializers.Serializer):
+    first_name = serializers.CharField(source="first_name", required=False)
+    last_name = serializers.CharField(source="last_name", required=False)
+    username = serializers.CharField()
+    user_url = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
+
+    def get_user_url(self, obj):
+        return f"/users/{obj.username}/"
+
+    def get_picture(self, obj):
+        return getattr(getattr(obj, "profile", None), "picture", None) or ""
+    
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user = ReviewUserSerializer(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "user", "rating", "comment", "created_at"]

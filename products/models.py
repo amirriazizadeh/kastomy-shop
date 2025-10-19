@@ -31,16 +31,6 @@ class Category(BaseModel):
 
 
 
-# class Seller(models.Model):
-#     user = models.OneToOneField(User, on_delete=models.CASCADE)
-#     shop_name = models.CharField(max_length=255)
-#     rating = models.FloatField(null=True, blank=True)
-
-#     def __str__(self):
-#         return self.shop_name
-
-
-
 class Product(models.Model):
     name = models.CharField(max_length=255, verbose_name="نام محصول")
     slug = models.SlugField(max_length=255, unique=True, allow_unicode=True, db_index=True, verbose_name="اسلاگ")
@@ -125,27 +115,6 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class ProductImage(BaseModel):
     
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images', verbose_name="محصول")
@@ -204,3 +173,28 @@ class ProductVariant(BaseModel):
 
 
 
+
+class Review(models.Model):
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name="محصول"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name="کاربر"
+    )
+    rating = models.PositiveSmallIntegerField(default=5, verbose_name="امتیاز")
+    comment = models.TextField(blank=True, verbose_name="متن نظر")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ثبت")
+
+    class Meta:
+        verbose_name = "نظر"
+        verbose_name_plural = "نظرات"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.product} ({self.rating})"

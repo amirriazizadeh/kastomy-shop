@@ -1,10 +1,10 @@
 
 from django.http import Http404
-from rest_framework import viewsets,status
+from rest_framework import viewsets,status,generics,permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Product,Category
-from .serializers import ProductSerializer,Category,CategorySerializer,ProductDetailsSerializer
+from .models import Product,Category,Review
+from .serializers import ProductSerializer,Category,CategorySerializer,ProductDetailsSerializer,ReviewSerializer
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.pagination import PageNumberPagination
 
@@ -138,3 +138,19 @@ class ProductDetailAPIView(APIView):
             return Response({'detail': 'محصول پیدا نشد.'}, status=status.HTTP_404_NOT_FOUND)
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+class ReviewPagination(PageNumberPagination):
+    page_size_query_param = "page_size"
+    page_query_param = "page"
+
+
+
+class ProductReviewListView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = ReviewPagination
+
+    def get_queryset(self):
+        product_id = self.kwargs["product_id"]
+        return Review.objects.filter(product_id=product_id).select_related("user")
