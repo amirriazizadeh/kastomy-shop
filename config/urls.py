@@ -9,16 +9,16 @@ from django.conf import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     #accounts
-    path('api/accounts/', include('accounts.urls')),
-    path('api/myuser/',include('accounts.urls_myuser')),
+    path('api/accounts/', include('apps.accounts.urls')),
+    path('api/myuser/',include('apps.accounts.urls_myuser')),
     #product
-    path('api/',include('products.urls')),
-    path('api/categories/',include('products.urls_categories')),
+    path('api/',include('apps.products.urls')),
+    path('api/categories/',include('apps.products.urls_categories')),
     # cart
-    path('api/mycart/', include('cart.urls')),
+    path('api/mycart/', include('apps.cart.urls')),
     # order
-    path('api/orders/', include('orders.urls')),
-    path('api/payments/', include('orders.urls_payments')),
+    path('api/orders/', include('apps.orders.urls')),
+    path('api/payments/', include('apps.orders.urls_payments')),
      # API Schema:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:
