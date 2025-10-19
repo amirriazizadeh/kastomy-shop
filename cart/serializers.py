@@ -1,89 +1,79 @@
 from rest_framework import serializers
 from .models import CartItem,Cart
+from products.serializers import ProductSerializer
+
+from products.models import Product
+from stores.models import Store,StoreItem
+from products.serializers import ProductImageSerializer
 
 
+# --- Store Serializers ---
+class StoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        fields = ["id", "name", "description", "seller", ]
 
 
+# --- StoreItem Serializers ---
+class StoreItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = StoreItem
+        fields = [
+            "id",
+            "price",
+            "discount_price",
+            "stock",
+            "is_active",
+            "created_at",
+            "updated_at",
+            "product",
+            "store",
+        ]
+
+
+# --- CartItem Serializers ---
 class CartItemSerializer(serializers.ModelSerializer):
-    store_item_name = serializers.CharField(
-        source='store_item.variant.product.name', read_only=True
-    )
+    product = serializers.SerializerMethodField()
+    store = serializers.SerializerMethodField()
+    store_item = StoreItemSerializer(read_only=True)
 
     class Meta:
         model = CartItem
-        fields = ['id', 'store_item_name', 'quantity', 'price', 'total_price']
-        read_only_fields = ['id', 'store_item_name', 'price', 'total_price']
+        fields = [
+            "id",
+            "product",
+            "quantity",
+            "store",
+            "total_item_price",
+            "total_discount",
+            "total_price",
+            "unit_price",
+            "store_item",
+        ]
 
-    def validate(self, attrs):
-        # جلوگیری از تغییر فیلدهای read-only توسط کاربر
-        if 'price' in self.initial_data or 'total_price' in self.initial_data:
-            raise serializers.ValidationError(
-                "این آیتم قابل تغییر نیست. فقط تعداد قابل ویرایش است."
-            )
-        return super().validate(attrs)
-
-    def validate_quantity(self, value):
-        # بررسی موجودی انبار
-        store_item = self.instance.store_item if self.instance else self.context.get('store_item')
-        if value > store_item.stock_quantity:
-            raise serializers.ValidationError("موجودی کافی نیست.")
-        if value < 1:
-            raise serializers.ValidationError("تعداد باید حداقل ۱ باشد.")
-        return value
-
-    def update(self, instance, validated_data):
-        # فقط quantity رو آپدیت کن و قیمت واقعی را از store_item بگیر
-        instance.quantity = validated_data.get('quantity', instance.quantity)
-        instance.price = instance.store_item.price
-        instance.save()
-        return instance
+    def get_product(self, obj):
+        product = obj.store_item.product
+        return ProductSerializer(product).data
 
 
+    def get_store(self, obj):
+        if obj.store_item and obj.store_item.store:
+            return StoreSerializer(obj.store_item.store).data
+        return None
 
+
+# --- Cart Serializer ---
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
-        fields = ['id', 'total_price', 'items']
+        fields = ["id", "user", "items", "total_price", "total_discount", "is_active"]
+        read_only_fields = ["user", "total_price", "total_discount", "is_active"]
 
-
-
-
-class AddToCartSerializer(serializers.Serializer):
-    """Validate quantity for adding to cart."""
-    quantity = serializers.IntegerField(min_value=1)
-    def validate(self, attrs):
-        request = self.context.get('request')
-        store_item = self.context.get('store_item') 
-        quantity = attrs.get('quantity')
-
-        # Check stock availability
-        if store_item.stock_quantity < quantity:
-            raise serializers.ValidationError(
-                {"quantity": f"Only {store_item.stock_quantity} items are available in stock."}
-            )
-        return attrs
-
-class CartItemSerializer(serializers.ModelSerializer):
-    """Serialize cart item details."""
-    store_item_name = serializers.CharField(source='store_item.variant.product.name', read_only=True)
-
-    class Meta:
-        model = CartItem
-        fields = ['id', 'store_item_name', 'quantity', 'price', 'total_price']
-        read_only_fields = ['price', 'total_price']
-
-class AddToCartInputSerializer(serializers.Serializer):
-    """ورودی برای افزودن محصول به سبد خرید"""
-    quantity = serializers.IntegerField(
-        required=False, default=1, min_value=1,
-        help_text="تعداد محصولی که باید به سبد اضافه شود (پیش‌فرض = 1)."
-    )
-
-class ApplyDiscountInputSerializer(serializers.Serializer):
-    """ورودی برای اعمال کد تخفیف روی سبد خرید"""
-    code = serializers.CharField(
-        required=True,
-        help_text="کد تخفیف معتبر که باید روی سبد خرید اعمال شود."
-    )
+    def create(self, validated_data):
+        user = self.context["request"].user
+        cart = Cart.objects.create(user=user)
+        return cart

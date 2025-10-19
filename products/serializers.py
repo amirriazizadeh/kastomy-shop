@@ -3,48 +3,10 @@ from .models import (
     Product, Category, ProductImage, 
     Attribute, AttributeValue, ProductVariant
 )
-
-
-class RecursiveField(serializers.Serializer):
-    
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-class CategorySerializer(serializers.ModelSerializer):
-    
-    children = RecursiveField(many=True, read_only=True)
-
-    class Meta:
-        model = Category
-        fields = [
-            'id',
-            'name',
-            'slug',
-            'parent', 
-            'children' 
-        ]
-
-
-class CategoryCreateUpdateSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = Category
-        fields = [
-            'name',
-            'slug',
-            'parent',
-        ]
-    
-    def validate_parent(self, value):
-        if self.instance and value == self.instance:
-            raise serializers.ValidationError("یک دسته‌بندی نمی‌تواند والد خودش باشد.")
-        return value
-
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['image', 'alt_text']
+from rest_framework import serializers
+from .models import Product, ProductImage, Category,Review
+from accounts.models import CustomUser  
+from stores.models import Store
 
 
 class AttributeSerializer(serializers.ModelSerializer):
@@ -53,9 +15,7 @@ class AttributeSerializer(serializers.ModelSerializer):
         fields = ['name']
 
 class AttributeValueSerializer(serializers.ModelSerializer):
-    # To show the attribute name like "Color" instead of just its ID
     attribute = AttributeSerializer(read_only=True)
-
     class Meta:
         model = AttributeValue
         fields = ['attribute', 'value']
@@ -63,38 +23,163 @@ class AttributeValueSerializer(serializers.ModelSerializer):
 class ProductVariantSerializer(serializers.ModelSerializer):
     attributes = AttributeValueSerializer(many=True, read_only=True)
     name = serializers.CharField(read_only=True)
-
     class Meta:
         model = ProductVariant
         fields = ['id', 'name', 'attributes']
 
 
-class ProductSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(many=True, read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
-    variants = ProductVariantSerializer(many=True, read_only=True)
+
+# -------------------------------
+# 🔸 ProductImage Serializer
+# -------------------------------
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
+
+
+
+
+class SellerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        fields = ['id', ]
+
+
+
+
+
+# -------------------------------
+# 🔸 Category Serializer 
+# -------------------------------
+
+class CategorySimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name','parent']
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    children = CategorySimpleSerializer(many=True, read_only=True)
+    parents = serializers.SerializerMethodField()
 
     class Meta:
-        model = Product
+        model = Category
         fields = [
-            'id', 'name', 'slug', 'description', 'cover_image',
-            'is_active', 'rating', 'category', 'images', 'variants'
+            'id', 'image', 'name', 'description',
+            'is_active', 'parent', 'children', 'parents'
         ]
 
-class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    category = serializers.PrimaryKeyRelatedField(
+    def get_parents(self, obj):
+        parents = []
+        current = obj.parent
+        while current:
+            parents.insert(0, current)  # از بالا به پایین مرتب کنیم
+            current = current.parent
+        return CategorySimpleSerializer(parents, many=True).data
+
+
+
+# -------------------------
+# 🔸 Product Serializer
+# -------------------------
+class ProductSerializer(serializers.ModelSerializer):
+    category = CategorySimpleSerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
-        many=True,
-        allow_empty=False 
+        source='category',
+        write_only=True
     )
 
+    best_seller = SellerSerializer(read_only=True)
+    best_seller_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        source='best_seller',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    images = ProductImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Product
         fields = [
+            'id',
             'name',
-            'slug',
             'description',
-            'cover_image',
+            'rating',
+            'stock',
+            'best_seller',
+            'best_seller_id',
+            'best_price',
+            'category',
+            'category_id',
+            'images',
             'is_active',
-            'category' 
         ]
+
+    def create(self, validated_data):
+        images_data = self.context['request'].FILES.getlist('images')
+        product = super().create(validated_data)
+        for img in images_data:
+            ProductImage.objects.create(product=product, image=img)
+        return product
+
+    def update(self, instance, validated_data):
+        images_data = self.context['request'].FILES.getlist('images')
+        instance = super().update(instance, validated_data)
+        if images_data:
+            instance.images_list.all().delete()
+            for img in images_data:
+                ProductImage.objects.create(product=instance, image=img)
+        return instance
+
+
+
+
+class ProductDetailsSerializer(serializers.ModelSerializer):
+    best_seller = SellerSerializer()
+    category = CategorySerializer()
+    images = ProductImageSerializer(many=True)
+    sellers = SellerSerializer(many=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'best_seller',
+            'name',
+            'description',
+            'stock',
+            'rating',
+            'best_price',
+            'created_at',
+            'category',
+            'images',
+            'sellers',
+            'is_active',
+        ]
+
+
+
+class ReviewUserSerializer(serializers.Serializer):
+    first_name = serializers.CharField(source="first_name", required=False)
+    last_name = serializers.CharField(source="last_name", required=False)
+    username = serializers.CharField()
+    user_url = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
+
+    def get_user_url(self, obj):
+        return f"/users/{obj.username}/"
+
+    def get_picture(self, obj):
+        return getattr(getattr(obj, "profile", None), "picture", None) or ""
+    
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user = ReviewUserSerializer(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "user", "rating", "comment", "created_at"]
