@@ -1,10 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from apps.users.serializers import UserWriteSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.conf import settings
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
 )
@@ -111,3 +115,54 @@ class LogoutView(APIView):
             except TokenError as e:
                 return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class Register(APIView):
+    permission_classes = [AllowAny]
+
+    USER_WRITE_RESPONSE = openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "id": openapi.Schema(type=openapi.TYPE_INTEGER, example=2),
+            "email": openapi.Schema(
+                type=openapi.TYPE_STRING, example="newuser@example.com"
+            ),
+            "phone": openapi.Schema(type=openapi.TYPE_STRING, example="09123456789"),
+            "first_name": openapi.Schema(type=openapi.TYPE_STRING, example="John"),
+            "last_name": openapi.Schema(type=openapi.TYPE_STRING, example="Doe"),
+            "picture": openapi.Schema(
+                type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, example=None
+            ),
+        },
+    )
+
+    @swagger_auto_schema(
+        request_body=UserWriteSerializer,
+        operation_summary="Registration",
+        operation_description="register by your information (picture is optional)",
+        responses={
+            201: openapi.Response(
+                description="User successfully created", schema=USER_WRITE_RESPONSE
+            ),
+            400: openapi.Response(
+                description="Validation error (e.g., duplicate email/phone)",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "email": openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Items(type=openapi.TYPE_STRING),
+                            example=["user with this email already exists."],
+                        )
+                    },
+                ),
+            ),
+        },
+    )
+    def post(self, request):
+        serializer = UserWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
