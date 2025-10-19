@@ -1,32 +1,42 @@
-
-
 from django.contrib import admin
-from django.urls import include, path
-from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from django.conf.urls.static import static
+from django.urls import path, include, re_path
 from django.conf import settings
+from django.conf.urls.static import static
+from drf_yasg.views import get_schema_view  # type: ignore
+from drf_yasg import openapi  # type: ignore
+from rest_framework import permissions  # type: ignore
+from config.views import health_check
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Vendora API",
+        default_version="v1",
+        description="API documentation for Vendora project",
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="nimamze3@gmail.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    #accounts
-    path('api/accounts/', include('apps.accounts.urls')),
-    path('api/myuser/',include('apps.accounts.urls_myuser')),
-    #product
-    path('api/',include('apps.products.urls')),
-    path('api/categories/',include('apps.products.urls_categories')),
-    # cart
-    path('api/mycart/', include('apps.cart.urls')),
-    # order
-    path('api/orders/', include('apps.orders.urls')),
-    path('api/payments/', include('apps.orders.urls_payments')),
-     # API Schema:
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # Optional UI:
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-
+    path("health/", health_check),
+    path("admin/", admin.site.urls),
+    re_path(
+        r"^swagger(?P<format>\.json|\.yaml)$",
+        schema_view.without_ui(cache_timeout=0),
+        name="schema-json",
+    ),
+    path(
+        "swagger/",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+    path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    path("api/", include("apps.urls")),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
