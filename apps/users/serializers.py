@@ -1,15 +1,73 @@
-
 from rest_framework import serializers
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-
+from apps.orders.serializers import OrderReadSerializer
 
 User = get_user_model()
 
 
+class CodeSerializer(serializers.Serializer):
+    code = serializers.IntegerField()
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    old_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={"required": "Old password is required."},
+    )
+    pass1 = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        error_messages={
+            "required": "New password is required.",
+            "min_length": "Password must be at least 8 characters long.",
+        },
+    )
+    pass2 = serializers.CharField(
+        write_only=True,
+        required=True,
+        error_messages={"required": "Please confirm your password."},
+    )
+
+    def validate_pass1(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
+
+    def validate(self, data):
+        if data["pass1"] != data["pass2"]:
+            raise serializers.ValidationError({"pass2": "Passwords do not match."})
+        return data
+
+
+class UserReadSerializer(serializers.ModelSerializer):
+    orders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "phone",
+            "first_name",
+            "last_name",
+            "full_name",
+            "picture",
+            "orders",
+        ]
+        read_only_fields = fields
+
+    def get_orders(self, obj):
+        return OrderReadSerializer(
+            obj.orders.all(), many=True, context=self.context
+        ).data
 
 
 class UserWriteSerializer(serializers.ModelSerializer):
