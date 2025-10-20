@@ -4,10 +4,6 @@ from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
 
-admin.site.site_header = settings.ADMIN_SITE_HEADER
-admin.site.site_title = settings.ADMIN_SITE_TITLE
-admin.site.index_title = settings.ADMIN_SITE_HEADER
-
 
 class DeleteHardModelAdmin(admin.ModelAdmin):
     @admin.action(description="Hard delete selected items")
