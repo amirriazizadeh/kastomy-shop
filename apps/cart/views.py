@@ -212,3 +212,76 @@ class CartItemDetail(APIView):
             )
         cart_item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AddStoreItemToCart(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=CartItemWriteSerializer,
+        operation_summary="Add Store Item To Cart",
+        operation_description="add a store item to your cart by its pk (URL path parameter)",
+        responses={
+            201: openapi.Response(
+                description="Item added to cart (new item)",
+                schema=CART_ITEM_READ_SCHEMA,
+            ),
+            200: openapi.Response(
+                description="Item quantity updated (existing item)",
+                schema=CART_ITEM_READ_SCHEMA,
+            ),
+            404: openapi.Response(
+                description="Store item not found", schema=MESSAGE_RESPONSE_SCHEMA
+            ),
+            400: openapi.Response(
+                description="Bad Request / Not enough stock",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Not enough stock available",
+                        )
+                    },
+                ),
+            ),
+        },
+    )
+    def post(self, request, pk):
+        try:
+            store_item = StoreItem.objects.get(pk=pk, is_active=True)
+        except StoreItem.DoesNotExist:
+            return Response(
+                {"message": "Store item not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user_cart = request.user.cart
+
+        serializer = CartItemWriteSerializer(
+            data=request.data, context={"request": request, "store_item": store_item}
+        )
+
+        if serializer.is_valid():
+            quantity_to_add = serializer.validated_data.get("quantity", 1)  # type: ignore
+            cart_item, created = CartItem.objects.get_or_create(
+                cart=user_cart, store_item=store_item, defaults={"quantity": 0}
+            )
+            if cart_item.quantity + quantity_to_add > store_item.stock:
+                return Response(
+                    {"message": "Not enough stock available"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            cart_item.quantity += quantity_to_add
+            cart_item.save()
+            response_serializer = CartItemReadSerializer(
+                cart_item,
+                context={"request": request},
+            )
+            return Response(
+                response_serializer.data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
