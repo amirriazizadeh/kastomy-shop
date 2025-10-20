@@ -3,6 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import (
+    CartItemReadSerializer,
+    CartItemWriteSerializer,
     CartSerializer,
 )
 from apps.cart.models import CartItem
@@ -83,3 +85,130 @@ class UserCart(APIView):
         serializer = CartSerializer(user_cart, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+class UserCartItem(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="My Cart Items",
+        operation_description="see your cart items",
+        responses={
+            200: openapi.Response(
+                description="List of cart items",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY, items=CART_ITEM_READ_SCHEMA
+                ),
+            ),
+        },
+    )
+    def get(self, request):
+        user_cart = request.user.cart
+        cart_items = user_cart.items.all()
+        serializer = CartItemReadSerializer(
+            cart_items,
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CartItemDetail(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk, user):
+        try:
+            return CartItem.objects.get(pk=pk, cart=user.cart)
+        except CartItem.DoesNotExist:
+            return None
+
+    @swagger_auto_schema(
+        request_body=CART_ITEM_WRITE_REQUEST,
+        operation_summary="Update Cart Item",
+        operation_description="update a cart item by its pk (setting a new quantity)",
+        responses={
+            200: openapi.Response(
+                description="Cart item updated successfully",
+                schema=CART_ITEM_READ_SCHEMA,
+            ),
+            204: openapi.Response(
+                description="Cart item quantity set to 0 and item deleted",
+                schema=MESSAGE_RESPONSE_SCHEMA,
+            ),
+            404: openapi.Response(
+                description="Cart item not found", schema=MESSAGE_RESPONSE_SCHEMA
+            ),
+            400: openapi.Response(
+                description="Bad Request / Not enough stock",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Not enough stock available",
+                        )
+                    },
+                ),
+            ),
+        },
+    )
+    def patch(self, request, pk):
+        cart_item = self.get_object(pk, request.user)
+        if not cart_item:
+            return Response(
+                {"message": "Cart item not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CartItemWriteSerializer(
+            instance=cart_item,
+            data=request.data,
+            partial=True,
+            context={
+                "request": request,
+                "store_item": cart_item.store_item,
+            },
+        )
+
+        if serializer.is_valid():
+            new_quantity = serializer.validated_data.get("quantity")  # type: ignore
+            if new_quantity is not None:
+                if new_quantity <= 0:  # type: ignore
+                    cart_item.delete()
+                    return Response(
+                        {"message": "Cart item deleted"},
+                        status=status.HTTP_204_NO_CONTENT,
+                    )
+                store_item = cart_item.store_item
+                if new_quantity > store_item.stock:  # type: ignore
+                    return Response(
+                        {"message": "Not enough stock available"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            serializer.save()
+            response_serializer = CartItemReadSerializer(
+                cart_item,
+                context={"request": request},
+            )
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_summary="Delete Cart Item",
+        operation_description="delete a cart item by its pk",
+        responses={
+            204: openapi.Response(
+                description="Cart item deleted successfully (No Content)",
+            ),
+            404: openapi.Response(
+                description="Cart item not found", schema=MESSAGE_RESPONSE_SCHEMA
+            ),
+        },
+    )
+    def delete(self, request, pk):
+        cart_item = self.get_object(pk, request.user)
+        if not cart_item:
+            return Response(
+                {"message": "Cart item not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        cart_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

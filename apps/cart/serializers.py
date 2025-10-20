@@ -92,3 +92,23 @@ class CartSerializer(serializers.ModelSerializer):
         products = [item.store_item.product for item in obj.items.all()]
         serializer = ProductReadSerializer(products, many=True, context=self.context)
         return serializer.data
+
+
+class CartItemWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartItem
+        fields = ["quantity"]
+
+    def validate_quantity(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Quantity must be non-negative")
+        store_item = None
+        if self.instance:
+            store_item = self.instance.store_item
+        else:
+            store_item = self.context.get("store_item")
+            if not store_item:
+                raise serializers.ValidationError("Store item is required")
+        if value > 0 and store_item and store_item.stock < value:
+            raise serializers.ValidationError("Not enough stock available")
+        return value
