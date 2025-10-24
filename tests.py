@@ -1,7 +1,7 @@
 from apps.accounts.tests.test_account import *
 
-# from apps.addresses.tests.api_tests import *
-# from apps.addresses.tests.model_tests import *
+from apps.addresses.tests.api_tests import *
+from apps.addresses.tests.model_tests import *
 
 # from apps.cart.tests.api_tests import *
 # from apps.cart.tests.model_tests import *
